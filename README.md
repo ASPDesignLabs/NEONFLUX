@@ -4,7 +4,6 @@
 
 **NEONFLUX** is a combined Wear OS and Android experience that harnesses movement and haptic playback to assist with grounding and regulation.
 
-*   **Download Project Files:** [GitHub Repository](https://github.com/ASPDesignLabs/NEONFLUX)
 *   **Requirements:** Android Studio (to build) or ADB (to sideload).
 
 ---
