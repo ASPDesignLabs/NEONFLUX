@@ -1,0 +1,50 @@
+# --- Build System & Artifacts ---
+.gradle/
+build/
+/*/build/
+!gradle-wrapper.jar
+
+# --- Android Studio / IntelliJ ---
+.idea/
+.navigation/
+*.iml
+*.ipr
+*.iws
+.settings/
+.vscode/
+captures/
+
+# --- Native C++ (CRITICAL for NeonFlux) ---
+# These generate massive temp files for the Oboe engine
+.cxx/
+.externalNativeBuild/
+
+# --- Local Configuration (CRITICAL) ---
+# Contains SDK paths and potential secrets
+local.properties
+
+# --- Security & Signing Keys (CRITICAL) ---
+# Never let these leave your local machine
+*.jks
+*.keystore
+*.pem
+*.p12
+*.key
+key.properties
+google-services.json
+
+# --- Outputs (Releases) ---
+# We want to release these manually via GitHub Releases, not commit them to the repo
+*.apk
+*.aab
+*.ap_
+
+# --- OS Junk ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+desktop.ini
