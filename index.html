@@ -3,21 +3,21 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>NeonFlux — Haptic Synchronization Protocol</title>
-<meta name="description" content="NEONFLUX is a combined Wear OS and Android experience that harnesses movement and haptic playback to assist with grounding and regulation." />
+<title>NeonFlux — Haptics for Grounding</title>
+<meta name="description" content="NEON FLUX is a combined Wear OS and Android experience that harnesses movement and haptic playback to assist with grounding. Invisible. Reactive. Ready when you are." />
 
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="NeonFlux" />
 <meta property="og:url" content="https://aspdesignlabs.github.io/NEONFLUX/" />
-<meta property="og:title" content="NeonFlux — Haptic Synchronization Protocol" />
-<meta property="og:description" content="Invisible. Reactive. Ready when you are. A Wear OS + Android haptic feedback and rhythmic entrainment system for grounding and regulation." />
+<meta property="og:title" content="NeonFlux — Haptics for Grounding" />
+<meta property="og:description" content="NEON FLUX is a combined Wear OS and Android experience that harnesses movement and haptic playback to assist with grounding. Invisible. Reactive. Ready when you are." />
 <meta property="og:image" content="https://aspdesignlabs.github.io/NEONFLUX/assets/social/og-card.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="NeonFlux — Haptic Synchronization Protocol, cyan and pink neon wordmark on black" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="NeonFlux — Haptic Synchronization Protocol" />
-<meta name="twitter:description" content="Invisible. Reactive. Ready when you are. A Wear OS + Android haptic feedback and rhythmic entrainment system for grounding and regulation." />
+<meta name="twitter:title" content="NeonFlux — Haptics for Grounding" />
+<meta name="twitter:description" content="NEON FLUX is a combined Wear OS and Android experience that harnesses movement and haptic playback to assist with grounding. Invisible. Reactive. Ready when you are." />
 <meta name="twitter:image" content="https://aspdesignlabs.github.io/NEONFLUX/assets/social/og-card.png" />
 <meta name="twitter:image:alt" content="NeonFlux — Haptic Synchronization Protocol, cyan and pink neon wordmark on black" />
 
@@ -259,28 +259,28 @@ footer .footer-links { display: flex; gap: 1.25rem; justify-content: center; fle
 
 <nav class="top" aria-label="Section navigation">
   <div class="nav-inner">
-    <a class="nav-brand" href="#main">NEONFLUX</a>
+    <a class="nav-brand" href="#main">NEON&nbsp;//&nbsp;FLUX</a>
     <div class="nav-groups">
+      <details class="nav-pill">
+        <summary>Get Started <span class="car" aria-hidden="true">&#9662;</span></summary>
+        <div class="nav-dropdown">
+          <a href="#how-it-works">How It Works</a>
+          <a href="#setup">Getting Started</a>
+          <a href="#install">Installation</a>
+        </div>
+      </details>
       <details class="nav-pill">
         <summary>The Decks <span class="car" aria-hidden="true">&#9662;</span></summary>
         <div class="nav-dropdown">
-          <a href="#how-it-works">How It Works</a>
-          <a href="#reactor">Deck 01: Reactor</a>
-          <a href="#clinical">Deck 02: Clinical</a>
-          <a href="#transitioning">Transitioning Decks</a>
+          <a href="#reactor">Part 1: Reactor</a>
+          <a href="#transitioning">Part 2: Transitioning Decks</a>
+          <a href="#clinical">Part 3: Clinical</a>
         </div>
       </details>
       <details class="nav-pill">
         <summary>Safety <span class="car" aria-hidden="true">&#9662;</span></summary>
         <div class="nav-dropdown">
           <a href="#safety">Safety &amp; Lockdown</a>
-        </div>
-      </details>
-      <details class="nav-pill">
-        <summary>Get Started <span class="car" aria-hidden="true">&#9662;</span></summary>
-        <div class="nav-dropdown">
-          <a href="#setup">Initialization</a>
-          <a href="#install">Installation</a>
         </div>
       </details>
       <details class="nav-pill">
@@ -298,14 +298,14 @@ footer .footer-links { display: flex; gap: 1.25rem; justify-content: center; fle
 <main id="main">
 
   <section class="hero">
-    <h1>// NEONFLUX: HAPTIC SYNCHRONIZATION PROTOCOL</h1>
-    <p class="tagline">Invisible. Reactive. Ready when you are.</p>
-    <p class="lede">NEONFLUX is a combined Wear OS and Android experience that harnesses movement and haptic playback to assist with grounding and regulation.</p>
-    <p class="req">Requirements: Android Studio (to build) or ADB (to sideload).</p>
+    <h1>NEON // FLUX</h1>
+    <p class="tagline">Haptics for Grounding | Your Self Regulation Metronome User Guide</p>
+    <p class="lede">NEON FLUX is a combined Wear OS and Android experience that harnesses movement and haptic playback to assist with grounding. Invisible. Reactive. Ready when you are.</p>
+    <p class="req">(You will need Android Studio to build, ADB to sideload to a Wear OS device.)</p>
     <div class="hero-ctas">
-      <a class="btn" href="https://github.com/ASPDesignLabs/NEONFLUX/releases/tag/v1.0-beta.1">View Releases</a>
-      <a class="btn alt" href="#install">Installation Guide</a>
-      <a class="btn ghost" href="https://github.com/ASPDesignLabs/NEONFLUX">Source on GitHub</a>
+      <a class="btn" href="https://github.com/ASPDesignLabs/NEONFLUX">Download the project files here</a>
+      <a class="btn alt" href="https://github.com/ASPDesignLabs/NEONFLUX/releases/tag/v1.0-beta.1">Direct link to Beta APKs</a>
+      <a class="btn ghost" href="#install">Installation Guide</a>
     </div>
     <p class="disclaimer">NeonFlux is an experimental tool. Use responsibly.</p>
   </section>
@@ -326,178 +326,197 @@ footer .footer-links { display: flex; gap: 1.25rem; justify-content: center; fle
   <section id="how-it-works" class="wrap narrow-top">
     <p class="eyebrow">// CORE PHILOSOPHY</p>
     <h2>Two Decks, Two Jobs</h2>
-    <p>NEONFLUX is designed around two distinct decks, each serving a specific regulatory function:</p>
-    <ol>
-      <li><strong>REACTIVE FEEDBACK [REACTOR DECK]:</strong> For active stimming and grounding. It acts as an instrument, translating physical kinetic energy into sensory feedback.</li>
-      <li><strong>RHYTHMIC ENTRAINMENT [CLINICAL DECK]:</strong> For passive focus and regulation. It acts as a precise metronome for the nervous system.</li>
-    </ol>
+    <p>NEON FLUX is designed around two core philosophies: Reactive Feedback (Reactor Deck) for active stimming and grounding, and Rhythmic Entrainment (Clinical Deck) for passive focus and regulation.</p>
   </section>
 
-  <section id="reactor" class="wrap">
-    <p class="eyebrow">// DECK 01</p>
-    <h2><button type="button" class="accordion-toggle" aria-expanded="false" aria-controls="reactor-panel">
-      <span><span class="deck-reactor">REACTOR</span> [ACTIVE GROUNDING]</span>
+  <section id="setup" class="wrap">
+    <p class="eyebrow">// GETTING STARTED</p>
+    <h2><button type="button" class="accordion-toggle" aria-expanded="false" aria-controls="setup-panel">
+      Getting Started
       <span class="chevron" aria-hidden="true">&#9662;</span>
     </button></h2>
-    <div id="reactor-panel" class="accordion-panel" hidden>
-      <p>The Reactor Deck is the default state. It turns movement into data you can feel.</p>
+    <div id="setup-panel" class="accordion-panel" hidden>
+      <p>Getting started is easy:</p>
 
-      <h3 class="sub">How it Works</h3>
+      <h3 class="sub">1. Phone Setup (Neon Flux Mobile)</h3>
+      <p>Launch the NEON FLUX app on your phone.</p>
       <ul>
-        <li><strong>The Loop:</strong> The watch monitors linear acceleration. When you move (shake, tilt, or flick), that energy is instantly translated into haptic vibration.</li>
-        <li><strong>Stealth vs. Audio:</strong> By default, the system operates in <strong>STEALTH</strong> mode (Haptics only). Tap <strong>AUDIO: OFF</strong> to toggle <strong>AUDIO: ON</strong>. Movement will now generate a rising sci-fi synth tone proportional to your kinetic intensity.</li>
-        <li><strong>The Mirror:</strong> The phone app's <strong>Bio-Metric Visualizer</strong> mirrors your movement in real-time, creating a closed sensory loop between physical input and visual confirmation.</li>
-      </ul>
-
-      <h3 class="sub">Haptic Texture Swapping</h3>
-      <p>The Reactor isn't just one sensation. <strong>Double-Tap</strong> anywhere on the background to hot-swap the feedback texture:</p>
-      <ul>
-        <li><strong>PULSE:</strong> Standard linear feedback. Smooth and predictable.</li>
-        <li><strong>GEIGER:</strong> Probabilistic clicking. Denser clicks as intensity rises. Excellent for "fidgeting."</li>
-        <li><strong>THROB:</strong> Heavy, boosted impact (80ms). Best for deep pressure grounding.</li>
+        <li>The "Bio-Metric Visualizer" at the bottom will initially read "AWAITING TELEMETRY".</li>
+        <li>Ensure Bluetooth is active. You do not need to manually pair; the apps communicate via the Wearable Data Layer automatically.</li>
       </ul>
 
       <div class="shot-row">
-        <button type="button" class="shot-thumb" data-shot-name="Reactor deck on watch" data-shot-src="assets/screenshots/watch-reactor.png">
-          <span class="shot-thumb-sr">View Reactor deck screenshot, full size</span>
+        <button type="button" class="shot-thumb" data-shot-name="NEON FLUX Mobile, at initial start" data-shot-src="assets/screenshots/mobile-initial-start.png">
+          <span class="shot-thumb-sr">View "NEON FLUX Mobile, at initial start" screenshot, full size</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
         </button>
-        <button type="button" class="shot-thumb" data-shot-name="Haptic texture swap" data-shot-src="assets/gifs/reactor-texture-swap.gif">
-          <span class="shot-thumb-sr">View haptic texture swap recording, full size</span>
+      </div>
+
+      <h3 class="sub">2. Watch Initialization (NEON FLUX)</h3>
+      <p>Launch the app on your watch.</p>
+      <ul>
+        <li>You will be greeted by the REACTOR deck. The central ring displays your CORE status, or time remaining in the experience. This is different from your device battery meter, as each mode draws different amounts of power over time.</li>
+        <li>Note: The app manages its own screen-on rules. In active use, the screen reduces on time. In [CLINICAL] mode it respects user settings.</li>
+      </ul>
+
+      <div class="shot-row">
+        <button type="button" class="shot-thumb" data-shot-name="Starting NEON FLUX opens the app in the REACTOR Deck" data-shot-src="assets/screenshots/watch-reactor-start.png">
+          <span class="shot-thumb-sr">View "Starting NEON FLUX opens the app in the REACTOR Deck" screenshot, full size</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
         </button>
       </div>
     </div>
   </section>
 
+  <section id="reactor" class="wrap">
+    <p class="eyebrow">// PART 1</p>
+    <h2><button type="button" class="accordion-toggle" aria-expanded="false" aria-controls="reactor-panel">
+      <span><span class="deck-reactor">REACTOR</span> (Active Grounding)</span>
+      <span class="chevron" aria-hidden="true">&#9662;</span>
+    </button></h2>
+    <div id="reactor-panel" class="accordion-panel" hidden>
+      <p>The Reactor Deck is your default state. It is an "instrument" that turns your movement into sensory feedback. It is designed for active stimming, using physical motion to generate grounding sensations.</p>
+
+      <h3 class="sub">How it works</h3>
+      <ul>
+        <li><strong>The Loop:</strong> The watch monitors linear acceleration. When you move (shake, tilt, or flick your wrist), it translates that energy into haptic vibration and synthesized audio.</li>
+        <li><strong>Audio/Stealth:</strong> By default, the system is in STEALTH mode (Haptics only). Tap the button labeled AUDIO: OFF to toggle AUDIO: ON. Now, movement generates a rising sci-fi synth tone proportional to your intensity.</li>
+      </ul>
+
+      <div class="shot-row">
+        <button type="button" class="shot-thumb" data-shot-name="NEON FLUX Reactor demonstration, with audio playback" data-shot-src="assets/gifs/reactor-demo-audio.gif">
+          <span class="shot-thumb-sr">View "NEON FLUX Reactor demonstration, with audio playback" recording, full size</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        </button>
+      </div>
+
+      <ul>
+        <li><strong>The Mirror:</strong> While active, the phone app's Bio-Metric Visualizer mirrors your movement in real-time on a scrolling graph. This provides visual confirmation of your physical input, creating a closed sensory loop.</li>
+      </ul>
+
+      <div class="shot-row">
+        <button type="button" class="shot-thumb" data-shot-name="A 100 BPM profile as depicted in the visualizer" data-shot-src="assets/screenshots/visualizer-100bpm.png">
+          <span class="shot-thumb-sr">View "A 100 BPM profile as depicted in the visualizer" screenshot, full size</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        </button>
+      </div>
+
+      <h3 class="sub">Changing Feedback Profiles</h3>
+      <p>The Reactor Deck isn't just one sensation. You can hot-swap the "texture" of the feedback:</p>
+
+      <div class="shot-row">
+        <button type="button" class="shot-thumb" data-shot-name="Switching between haptic textures is a two tap process" data-shot-src="assets/screenshots/texture-swap-process.png">
+          <span class="shot-thumb-sr">View "Switching between haptic textures is a two tap process" screenshot, full size</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        </button>
+      </div>
+
+      <p>Double-Tap anywhere on the background (not a button). The watch will buzz and display the new profile name:</p>
+      <ul>
+        <li><strong>PULSE:</strong> Standard linear feedback. Smooth and predictable. Good for general movement.</li>
+        <li><strong>GEIGER:</strong> Probabilistic clicking. The harder you move, the denser the "radiation" clicks become. Excellent for "fidgeting" or small, sharp movements.</li>
+        <li><strong>THROB:</strong> Heavy, boosted impact. Vibrations are longer (80ms) and stronger. Best for deep pressure grounding.</li>
+      </ul>
+    </div>
+  </section>
+
   <section id="transitioning" class="wrap">
-    <p class="eyebrow">// NAVIGATION</p>
+    <p class="eyebrow">// PART 2</p>
     <h2><button type="button" class="accordion-toggle" aria-expanded="false" aria-controls="transitioning-panel">
       Transitioning Decks
       <span class="chevron" aria-hidden="true">&#9662;</span>
     </button></h2>
     <div id="transitioning-panel" class="accordion-panel" hidden>
-      <p>To prevent accidental mode switches during active use, the interface uses physical rotary input.</p>
+      <p>The interface uses physical rotary input to prevent accidental mode switches.</p>
       <ul>
-        <li><strong>Action:</strong> Rotate the digital crown (or physical bezel).</li>
+        <li><strong>Action:</strong> Rotate the digital crown (or physical bezel) of your watch.</li>
         <li><strong>Feedback:</strong> You will feel a mechanical "click" after sufficient rotation.</li>
         <li><strong>Result:</strong> The interface slides from <span class="deck-reactor">REACTOR</span> (Cyan) to <span class="deck-clinical">CLINICAL</span> (Red/Cyan).</li>
       </ul>
+
+      <div class="shot-row">
+        <button type="button" class="shot-thumb" data-shot-name="The CLINICAL Deck interface" data-shot-src="assets/screenshots/clinical-deck-interface.png">
+          <span class="shot-thumb-sr">View "The CLINICAL Deck interface" screenshot, full size</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        </button>
+      </div>
     </div>
   </section>
 
   <section id="clinical" class="wrap">
-    <p class="eyebrow">// DECK 02</p>
+    <p class="eyebrow">// PART 3</p>
     <h2><button type="button" class="accordion-toggle" aria-expanded="false" aria-controls="clinical-panel">
-      <span><span class="deck-clinical">CLINICAL</span> [PASSIVE REGULATION]</span>
+      <span><span class="deck-clinical">CLINICAL</span> (Passive Regulation)</span>
       <span class="chevron" aria-hidden="true">&#9662;</span>
     </button></h2>
     <div id="clinical-panel" class="accordion-panel" hidden>
-      <p>While Reactor is about input, Clinical is about output. It forces a precise, rhythmic haptic beat to help regulate breathing or maintain focus.</p>
+      <p>While Reactor is about input, Clinical is about output. It is a metronome for your nervous system, forcing a precise, rhythmic haptic beat to help you regulate breathing or maintain focus during tasks. Rotate the watch crown in either direction to switch decks.</p>
 
-      <h3 class="sub">Configuration (Mission Control)</h3>
-      <p>Use the phone app to program the watch's firmware for this mode.</p>
+      <h3 class="sub">Configuration (The Phone's Role)</h3>
+      <p>While you can simply hit "INITIALIZE" on the watch to use the last settings, the Neon Flux phone app is your Mission Control for this deck.</p>
       <ul>
-        <li><strong>Waveform:</strong> Choose PULSE, GEIGER, or THROB.</li>
-        <li><strong>Frequency:</strong> Slider controls BPM (Beats Per Minute). 60 BPM is standard for calming.</li>
-        <li><strong>Intensity:</strong> Controls motor strength.</li>
-        <li><strong>Sleep Protocol:</strong> Toggle to force the watch screen and sensors off during the beat. Crucial for meditation or sleep without light pollution.</li>
-      </ul>
-
-      <h3 class="sub">The Sync Event</h3>
-      <ol>
-        <li>Tap "UPLOAD CONFIGURATION" on the phone.</li>
-        <li><strong>Phone:</strong> Animates <code>SYNCHRONIZING...</code></li>
-        <li><strong>Watch:</strong> Displays <code>[ FIRMWARE UPDATING ]</code> overlay.</li>
-        <li><strong>Result:</strong> The watch automatically loads the new settings and switches to the Clinical Deck.</li>
-      </ol>
-
-      <h3 class="sub">Engagement</h3>
-      <p>Tap <strong>INITIALIZE</strong> on the watch.</p>
-      <ul>
-        <li>A <strong>3-2-1</strong> countdown initiates.</li>
-        <li>The haptic engine begins. It uses an absolute-time drift correction algorithm to ensure it never "drags" or "rushes," staying perfectly on beat for hours.</li>
+        <li><strong>Waveform Selection:</strong> Choose between PULSE (Short), GEIGER (Sharp Tick), or THROB (Waveform) on the phone.</li>
+        <li><strong>Frequency:</strong> Slider controls the BPM (Beats Per Minute). 60 BPM is standard for calming; higher BPMs work for walking or high-focus work.</li>
+        <li><strong>Intensity:</strong> Controls the strength of the vibration.</li>
+        <li><strong>Sleep Protocol:</strong> Toggle this switch if you want the watch screen and ambient light sensors to turn off completely while the Clinical beat plays. This is crucial for sleeping or meditating without light distraction.</li>
       </ul>
 
       <div class="shot-row">
-        <button type="button" class="shot-thumb" data-shot-name="Clinical deck on watch" data-shot-src="assets/screenshots/watch-clinical.png">
-          <span class="shot-thumb-sr">View Clinical deck screenshot, full size</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-        </button>
-        <button type="button" class="shot-thumb" data-shot-name="Mission Control on phone" data-shot-src="assets/screenshots/phone-controller.png">
-          <span class="shot-thumb-sr">View Mission Control screenshot, full size</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-        </button>
-        <button type="button" class="shot-thumb" data-shot-name="Sync event" data-shot-src="assets/gifs/sync-event.gif">
-          <span class="shot-thumb-sr">View sync event recording, full size</span>
+        <button type="button" class="shot-thumb" data-shot-name="Uploading our device firmware with our custom haptic profile" data-shot-src="assets/screenshots/firmware-upload.png">
+          <span class="shot-thumb-sr">View "Uploading our device firmware with our custom haptic profile" screenshot, full size</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
         </button>
       </div>
+
+      <h3 class="sub">The Sync Event</h3>
+      <ol>
+        <li>Tap the large "UPLOAD CONFIGURATION" button on the phone.</li>
+        <li><strong>On Phone:</strong> The button animates "SYNCHRONIZING..." as settings are sent to the watch.</li>
+        <li><strong>On Watch:</strong> The watch is overtaken by a [FIRMWARE UPDATING] overlay. A progress bar fills the screen.</li>
+        <li><strong>Completion:</strong> The watch automatically switches to the Clinical Deck with your new settings loaded.</li>
+      </ol>
+
+      <h3 class="sub">Engagement</h3>
+      <p>Tap INITIALIZE on the watch.</p>
+      <ul>
+        <li>You will get a 3-2-1 countdown.</li>
+        <li>The haptic beat begins. It uses an absolute-time drift correction algorithm, meaning it will never "drag" or "rush." It stays perfectly on beat for hours if necessary.</li>
+        <li>To stop, tap the screen or use the Emergency Halt (see below).</li>
+      </ul>
     </div>
   </section>
 
   <section id="safety" class="wrap">
     <p class="eyebrow">// SAFETY &amp; LOCKDOWN</p>
     <h2><button type="button" class="accordion-toggle" aria-expanded="false" aria-controls="safety-panel">
-      Safety &amp; Lockdown
+      Safety &amp; Lockdown Features
       <span class="chevron" aria-hidden="true">&#9662;</span>
     </button></h2>
     <div id="safety-panel" class="accordion-panel" hidden>
 
       <h3 class="sub">1. The Curtain (Focus Mode)</h3>
-      <p>If movement stops in Reactor Deck, or if Clinical Mode is active, a "Dark Curtain" fades in.</p>
+      <p>If you start movement with the Reactor Deck open, leave the Reactor Deck alone for a few seconds, or if Clinical Mode is running with Sleep Protocol active, a "Dark Curtain" fades in, dimming the UI to near-black.</p>
       <ul>
-        <li><strong>Why:</strong> Saves OLED screens from burn-in and reduces visual overstimulation.</li>
-        <li><strong>Wake:</strong> Tap the screen once to lift the curtain. (If Sleep Protocol is active, use the Lockdown Gesture).</li>
+        <li><strong>Why?</strong> Saves OLED screens from burn in, preserves battery life, while reducing visual overstimulation.</li>
+        <li><strong>Wake:</strong> In the Reactor and Clinical Deck you tap the screen once to lift the curtain. If Sleep Protocol is enabled under Clinical Deck you'll need to use the Lockdown gesture.</li>
       </ul>
 
       <h3 class="sub">2. Lockdown Gesture (Emergency Stop)</h3>
-      <p>If sensation becomes overwhelming or you cannot navigate the UI:</p>
+      <p>If the sensation becomes overwhelming or you cannot look at the screen to find a button:</p>
       <ul>
         <li><strong>Action:</strong> Place two fingers on the screen and hold for 3 seconds.</li>
-        <li><strong>Result:</strong> HARD STOP. Motors kill, audio cuts, and a confirmation buzz indicates the system is safe.</li>
+        <li><strong>Result:</strong> The system executes an immediate HARD STOP. The motors kill, the audio cuts, and a confirmation buzz lets you know the system is safe.</li>
       </ul>
 
-      <h3 class="sub">3. Safe Mode</h3>
-      <p>To protect battery health, the app will refuse to run if the watch battery is below <strong>15%</strong>.</p>
-
-      <h3 class="sub">4. Exit Dialog</h3>
-      <p>Swiping "Back" triggers a <code>TERMINATE?</code> dialog to prevent accidental closure.</p>
+      <h3 class="sub">3. Exit Dialog</h3>
+      <p>Swipe "Back" (or press the physical back button) does not close the app immediately (to prevent accidental closures). Instead, it brings up a TERMINATE? dialog.</p>
       <ul>
-        <li><strong>RESUME:</strong> Return to the flux.</li>
+        <li><strong>RESUME:</strong> Go back to the flux.</li>
         <li><strong>HALT:</strong> Kill the app and return to the watch face.</li>
       </ul>
-    </div>
-  </section>
 
-  <section id="setup" class="wrap">
-    <p class="eyebrow">// INITIALIZATION</p>
-    <h2><button type="button" class="accordion-toggle" aria-expanded="false" aria-controls="setup-panel">
-      Initialization
-      <span class="chevron" aria-hidden="true">&#9662;</span>
-    </button></h2>
-    <div id="setup-panel" class="accordion-panel" hidden>
-
-      <h3 class="sub">1. Phone Setup (Mission Control)</h3>
-      <p>Launch <strong>NEONFLUX Mobile</strong>.</p>
-      <ul>
-        <li>The "Bio-Metric Visualizer" will initially read <code>AWAITING TELEMETRY</code>.</li>
-        <li>Ensure Bluetooth is active. No manual pairing is required; the application utilizes the Wearable Data Layer to automatically handshake with the nearest node.</li>
-      </ul>
-
-      <h3 class="sub">2. Watch Initialization (The Node)</h3>
-      <p>Launch <strong>NEONFLUX Wear</strong>.</p>
-      <ul>
-        <li>You will be greeted by the REACTOR deck.</li>
-        <li>The central ring displays your CORE status. Note that this differs from your device battery meter, as the haptic engine draws power differently depending on the active profile.</li>
-      </ul>
-
-      <div class="shot-row">
-        <button type="button" class="shot-thumb" data-shot-name="Bio-Metric Visualizer" data-shot-src="assets/screenshots/phone-biometric.png">
-          <span class="shot-thumb-sr">View Bio-Metric Visualizer screenshot, full size</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-        </button>
-      </div>
+      <h3 class="sub">Safeguards</h3>
+      <p><strong>SAFE MODE:</strong> In order to help protect your watch battery from high power draw at low power the app will refuse to run below 15%. If the watch OS reports less while the app is running it will close it. Future attempts to open the app will fail until charged.</p>
     </div>
   </section>
 
