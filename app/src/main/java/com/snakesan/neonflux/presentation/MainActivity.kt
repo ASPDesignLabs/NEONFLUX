@@ -26,7 +26,11 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -36,6 +40,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -205,6 +210,22 @@ fun FluxLabel(title: String, value: String, color: Color = Color.White) {
     }
 }
 
+@Composable
+fun RunningIndicator(color: Color, modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "runningPulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(animation = tween(700), repeatMode = RepeatMode.Reverse),
+        label = "runningPulseAlpha"
+    )
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(6.dp).clip(CircleShape).background(color.copy(alpha = pulseAlpha)))
+        Spacer(Modifier.width(4.dp))
+        Text("RUNNING", color = color.copy(alpha = pulseAlpha), fontSize = 8.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+    }
+}
+
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun NeonFluxWatchUI(activity: MainActivity) {
@@ -323,7 +344,11 @@ fun NeonFluxWatchUI(activity: MainActivity) {
     LaunchedEffect(profileNameToast) { if (profileNameToast.isNotEmpty()) { delay(1500); profileNameToast = "" } }
 
     val isLockedDown = isClinicalActive && countdownValue == 0
-    val shouldDarken = isLockedDown || (fluxState == FluxState.ACTIVE && currentDeck == Deck.REACTOR && !showExitDialog)
+    val isReactorRunning = fluxState == FluxState.ACTIVE && currentDeck == Deck.REACTOR
+    val isSessionRunning = isLockedDown || isReactorRunning
+    // Dark curtain now follows the phone's SLEEP PROTOCOL toggle only - outside
+    // of sleep mode we keep the deck UI up so it's clear what's running.
+    val shouldDarken = activity.clinicalSleep && isSessionRunning && !showExitDialog
     val curtainAlpha by animateFloatAsState(targetValue = if (shouldDarken) 1f else 0f, animationSpec = tween(800))
 
     BackHandler(enabled = !showExitDialog && !isLockedDown) { showExitDialog = true }
@@ -440,6 +465,12 @@ fun NeonFluxWatchUI(activity: MainActivity) {
                 fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp,
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = 20.dp)
             )
+            if (isSessionRunning) {
+                RunningIndicator(
+                    color = if (currentDeck == Deck.REACTOR) FluxCyan else FluxPink,
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 34.dp)
+                )
+            }
 
             if (currentDeck == Deck.REACTOR) {
                 Column(Modifier.fillMaxSize(), Arrangement.Center, Alignment.CenterHorizontally) {
