@@ -1,5 +1,6 @@
 # --- Build System & Artifacts ---
 .gradle/
+.kotlin/
 build/
 /*/build/
 !gradle-wrapper.jar
