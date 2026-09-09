@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NeonFlux — Haptic Synchronization Protocol</title>
+<meta name="description" content="NEONFLUX is a combined Wear OS and Android experience that harnesses movement and haptic playback to assist with grounding and regulation." />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="NeonFlux" />
+<meta property="og:url" content="https://aspdesignlabs.github.io/NEONFLUX/" />
+<meta property="og:title" content="NeonFlux — Haptic Synchronization Protocol" />
+<meta property="og:description" content="Invisible. Reactive. Ready when you are. A Wear OS + Android haptic feedback and rhythmic entrainment system for grounding and regulation." />
+<meta property="og:image" content="https://aspdesignlabs.github.io/NEONFLUX/assets/social/og-card.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="NeonFlux — Haptic Synchronization Protocol, cyan and pink neon wordmark on black" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="NeonFlux — Haptic Synchronization Protocol" />
+<meta name="twitter:description" content="Invisible. Reactive. Ready when you are. A Wear OS + Android haptic feedback and rhythmic entrainment system for grounding and regulation." />
+<meta name="twitter:image" content="https://aspdesignlabs.github.io/NEONFLUX/assets/social/og-card.png" />
+<meta name="twitter:image:alt" content="NeonFlux — Haptic Synchronization Protocol, cyan and pink neon wordmark on black" />
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23050505'/%3E%3Cg fill='none' stroke='%23FF0055' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M9 8 Q3 16 9 24'/%3E%3Cpath d='M23 8 Q29 16 23 24'/%3E%3Ccircle cx='16' cy='16' r='4'/%3E%3C/g%3E%3C/svg%3E" />
+
+<noscript><style>.accordion-panel[hidden] { display: block !important; }</style></noscript>
+
+<style>
+:root {
+  --void: #050505;
+  --graphite: #121212;
+  --graphite-2: #1a1a1a;
+  --border: #2a2a2a;
+  --text: #e8e8e8;
+  --text-dim: #a8a8a8;
+  --text-faint: #888888;
+  --cyan: #00f3ff;
+  --pink: #ff3377;
+  --pink-bright: #ff0055;
+  --orange: #ff9900;
+  --green: #00ff41;
+  --font-display: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+}
+
+body {
+  margin: 0;
+  background: var(--void);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.6;
+}
+
+h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.02em; }
+
+a { color: var(--cyan); }
+a:not(.nav-brand):not(.btn):not(.nav-dropdown a) { text-decoration-color: rgba(0,243,255,0.4); }
+
+.skip-link {
+  position: absolute; left: -999px; top: 0;
+  background: var(--pink-bright); color: var(--void); font-family: var(--font-display);
+  padding: 0.75em 1.25em; z-index: 1000; font-weight: bold;
+}
+.skip-link:focus { left: 1em; top: 1em; }
+
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+
+.wrap { max-width: 860px; margin: 0 auto; padding: 3rem 1.5rem; }
+.wrap.narrow-top { padding-top: 2rem; }
+
+.eyebrow {
+  font-family: var(--font-display);
+  color: var(--text-faint);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  margin: 0 0 0.5rem;
+}
+
+/* --- NAV --- */
+nav.top {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(5,5,5,0.92);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-inner { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; padding: 0.75rem 1.5rem; max-width: 1100px; margin: 0 auto; }
+.nav-brand {
+  font-family: var(--font-display); font-weight: 900; color: var(--cyan);
+  text-decoration: none; letter-spacing: 0.05em; font-size: 1.1rem;
+}
+.nav-groups { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-left: auto; }
+details.nav-pill { position: relative; }
+details.nav-pill > summary {
+  list-style: none; cursor: pointer; text-transform: uppercase;
+  color: var(--text-dim); background: var(--graphite); border: 1px solid var(--border);
+  padding: 0.5rem 0.9rem; display: inline-flex; align-items: center; gap: 0.4rem;
+  font-family: var(--font-display); font-size: 0.75rem; letter-spacing: 0.05em;
+}
+details.nav-pill > summary::-webkit-details-marker { display: none; }
+details.nav-pill > summary::marker { content: ""; }
+details.nav-pill[open] > summary { color: var(--cyan); border-color: var(--cyan); }
+details.nav-pill > summary .car { transition: transform 0.15s ease; display: inline-block; }
+details.nav-pill[open] > summary .car { transform: rotate(180deg); }
+.nav-dropdown {
+  position: absolute; top: calc(100% + 6px); left: 0; min-width: 230px;
+  background: var(--graphite); border: 1px solid var(--cyan);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.6); padding: 0.4rem 0; z-index: 20;
+}
+.nav-dropdown a { display: block; padding: 0.55rem 1rem; color: var(--text-dim); text-decoration: none; font-size: 0.85rem; }
+.nav-dropdown a:hover, .nav-dropdown a:focus-visible { color: var(--cyan); background: var(--graphite-2); }
+
+/* --- HERO --- */
+.hero { text-align: center; padding: 4rem 1.5rem 2rem; }
+.hero h1 {
+  font-size: clamp(1.6rem, 4.5vw, 2.6rem);
+  color: var(--cyan);
+  margin: 0 0 0.75rem;
+  text-shadow: 0 0 24px rgba(0,243,255,0.35);
+}
+.hero .tagline {
+  font-family: var(--font-display); color: var(--pink); font-size: 1.1rem;
+  letter-spacing: 0.03em; margin: 0 0 1.5rem; font-style: normal;
+}
+.hero p.lede { max-width: 640px; margin: 0 auto 1rem; color: var(--text-dim); font-size: 1.05rem; }
+.hero p.req { color: var(--text-faint); font-size: 0.85rem; margin: 0 0 2rem; }
+.hero-ctas { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem; }
+
+.btn {
+  display: inline-block; text-decoration: none; font-family: var(--font-display);
+  font-weight: bold; font-size: 0.85rem; letter-spacing: 0.03em;
+  padding: 0.8em 1.4em; border: 1px solid var(--cyan); color: var(--cyan);
+  background: rgba(0,243,255,0.08);
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+}
+.btn:hover, .btn:focus-visible { background: rgba(0,243,255,0.18); }
+.btn.alt { border-color: var(--pink-bright); color: var(--pink); background: rgba(255,0,85,0.08); }
+.btn.alt:hover, .btn.alt:focus-visible { background: rgba(255,0,85,0.18); }
+.btn.ghost { border-color: var(--border); color: var(--text-dim); background: transparent; }
+.btn.ghost:hover, .btn.ghost:focus-visible { border-color: var(--text-dim); color: var(--text); }
+
+.disclaimer {
+  max-width: 560px; margin: 0 auto; padding: 0.9rem 1.2rem;
+  border: 1px solid var(--border); color: var(--text-faint); font-size: 0.85rem;
+  background: var(--graphite);
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+
+/* --- STATUS BANNER --- */
+.status-banner {
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  background: var(--graphite);
+}
+.status-inner {
+  max-width: 860px; margin: 0 auto; padding: 1.25rem 1.5rem;
+  display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap;
+}
+.status-badge {
+  font-family: var(--font-display); font-size: 0.7rem; font-weight: bold;
+  color: var(--void); background: var(--orange);
+  padding: 0.3em 0.6em; letter-spacing: 0.05em; white-space: nowrap;
+}
+.status-text { flex: 1; min-width: 240px; color: var(--text-dim); font-size: 0.9rem; }
+.status-text strong { color: var(--text); }
+.status-links { display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.85rem; }
+
+/* --- SECTIONS --- */
+section.wrap h2 { font-size: 1.4rem; color: var(--text); margin: 0 0 1rem; }
+section.wrap h2 .deck-reactor { color: var(--cyan); }
+section.wrap h2 .deck-clinical { color: var(--pink); }
+h3.sub { font-family: var(--font-display); font-size: 0.95rem; color: var(--cyan); margin: 1.5rem 0 0.5rem; letter-spacing: 0.02em; }
+section.wrap p { color: var(--text-dim); }
+section.wrap ul, section.wrap ol { color: var(--text-dim); padding-left: 1.3rem; }
+section.wrap li { margin-bottom: 0.5rem; }
+section.wrap li strong { color: var(--text); }
+.panel {
+  background: var(--graphite); border: 1px solid var(--border); padding: 1.25rem 1.5rem;
+  margin: 1rem 0;
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+}
+.panel.warn { border-color: var(--pink-bright); }
+.panel.warn h3.sub { color: var(--pink); margin-top: 0; }
+
+/* --- ACCORDION --- */
+.accordion-toggle {
+  all: unset; display: flex; align-items: baseline; justify-content: space-between;
+  gap: 0.6rem; width: 100%; cursor: pointer; color: inherit; box-sizing: border-box;
+}
+.accordion-toggle:hover { color: var(--cyan); }
+.accordion-toggle:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+.accordion-toggle .chevron { transition: transform 0.15s ease; color: var(--text-faint); flex-shrink: 0; }
+.accordion-toggle[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+.accordion-panel { margin-top: 1rem; }
+
+/* --- SCREENSHOTS / LIGHTBOX --- */
+.shot-row { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1.5rem 0; }
+.shot-thumb {
+  width: 96px; height: 96px; padding: 0; cursor: pointer;
+  background-color: var(--graphite-2); background-size: cover; background-position: center;
+  border: 1px solid var(--border); color: var(--text-faint);
+  display: flex; align-items: center; justify-content: center;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+.shot-thumb:hover, .shot-thumb:focus-visible { border-color: var(--cyan); color: var(--cyan); }
+.shot-thumb-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+.shot-thumb svg { width: 22px; height: 22px; }
+.shot-thumb-label { font-size: 0.7rem; color: var(--text-faint); align-self: center; max-width: 96px; }
+
+dialog.shot-dialog {
+  border: 1px solid var(--cyan); background: var(--graphite); color: var(--text);
+  padding: 1rem; max-width: min(90vw, 640px); max-height: 90vh; overflow-y: auto;
+}
+dialog.shot-dialog::backdrop { background: rgba(0,0,0,0.8); }
+.shot-dialog-close {
+  position: absolute; top: 0.75rem; right: 0.75rem; background: var(--graphite-2);
+  border: 1px solid var(--border); color: var(--text); width: 32px; height: 32px; cursor: pointer;
+}
+.shot-dialog-close:hover, .shot-dialog-close:focus-visible { border-color: var(--pink-bright); color: var(--pink); }
+.shot-stage {
+  position: relative; overflow: hidden; width: 100%; height: 60vh;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--void); touch-action: none;
+}
+.shot-stage-placeholder {
+  text-align: center; color: var(--text-faint); font-family: var(--font-display); font-size: 0.85rem;
+  padding: 1rem; background-image: repeating-linear-gradient(45deg, var(--graphite-2), var(--graphite-2) 10px, var(--graphite) 10px, var(--graphite) 20px);
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+}
+.shot-image { max-width: none; cursor: grab; user-select: none; }
+.shot-image.grabbing { cursor: grabbing; }
+.shot-controls { display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.75rem; }
+.shot-controls button {
+  background: var(--graphite-2); border: 1px solid var(--border); color: var(--text);
+  width: 40px; height: 36px; cursor: pointer; font-family: var(--font-display);
+}
+.shot-controls button:hover, .shot-controls button:focus-visible { border-color: var(--cyan); color: var(--cyan); }
+.shot-hint { text-align: center; color: var(--text-faint); font-size: 0.75rem; margin: 0.6rem 0 0; }
+
+/* --- FOOTER --- */
+footer { border-top: 1px solid var(--border); padding: 2.5rem 1.5rem; text-align: center; color: var(--text-faint); font-size: 0.85rem; }
+footer a { color: var(--text-dim); }
+footer .footer-links { display: flex; gap: 1.25rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem; }
+
+@media (max-width: 640px) {
+  .nav-inner { flex-direction: column; align-items: flex-start; }
+  .nav-groups { margin-left: 0; }
+  .hero { padding-top: 2.5rem; }
+}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<nav class="top" aria-label="Section navigation">
+  <div class="nav-inner">
+    <a class="nav-brand" href="#main">NEONFLUX</a>
+    <div class="nav-groups">
+      <details class="nav-pill">
+        <summary>The Decks <span class="car" aria-hidden="true">&#9662;</span></summary>
+        <div class="nav-dropdown">
+          <a href="#how-it-works">How It Works</a>
+          <a href="#reactor">Deck 01: Reactor</a>
+          <a href="#clinical">Deck 02: Clinical</a>
+          <a href="#transitioning">Transitioning Decks</a>
+        </div>
+      </details>
+      <details class="nav-pill">
+        <summary>Safety <span class="car" aria-hidden="true">&#9662;</span></summary>
+        <div class="nav-dropdown">
+          <a href="#safety">Safety &amp; Lockdown</a>
+        </div>
+      </details>
+      <details class="nav-pill">
+        <summary>Get Started <span class="car" aria-hidden="true">&#9662;</span></summary>
+        <div class="nav-dropdown">
+          <a href="#setup">Initialization</a>
+          <a href="#install">Installation</a>
+        </div>
+      </details>
+      <details class="nav-pill">
+        <summary>Project <span class="car" aria-hidden="true">&#9662;</span></summary>
+        <div class="nav-dropdown">
+          <a href="https://github.com/ASPDesignLabs/NEONFLUX/releases">Releases</a>
+          <a href="https://github.com/ASPDesignLabs/NEONFLUX">Source</a>
+          <a href="#license">License</a>
+        </div>
+      </details>
+    </div>
+  </div>
+</nav>
+
+<main id="main">
+
+  <section class="hero">
+    <h1>// NEONFLUX: HAPTIC SYNCHRONIZATION PROTOCOL</h1>
+    <p class="tagline">Invisible. Reactive. Ready when you are.</p>
+    <p class="lede">NEONFLUX is a combined Wear OS and Android experience that harnesses movement and haptic playback to assist with grounding and regulation.</p>
+    <p class="req">Requirements: Android Studio (to build) or ADB (to sideload).</p>
+    <div class="hero-ctas">
+      <a class="btn" href="https://github.com/ASPDesignLabs/NEONFLUX/releases/tag/v1.0-beta.1">View Releases</a>
+      <a class="btn alt" href="#install">Installation Guide</a>
+      <a class="btn ghost" href="https://github.com/ASPDesignLabs/NEONFLUX">Source on GitHub</a>
+    </div>
+    <p class="disclaimer">NeonFlux is an experimental tool. Use responsibly.</p>
+  </section>
+
+  <div class="status-banner">
+    <div class="status-inner">
+      <span class="status-badge">v1.0 BETA</span>
+      <p class="status-text">
+        <strong>This software is not available on standard distribution channels (Play Store).</strong>
+        Installing it means sideloading via ADB. See <a href="#install">Installation</a> below before you start.
+      </p>
+      <div class="status-links">
+        <a href="https://github.com/ASPDesignLabs/NEONFLUX/releases/tag/v1.0-beta.1">Official NeonFlux Release Page</a>
+      </div>
+    </div>
+  </div>
+
+  <section id="how-it-works" class="wrap narrow-top">
+    <p class="eyebrow">// CORE PHILOSOPHY</p>
+    <h2>Two Decks, Two Jobs</h2>
+    <p>NEONFLUX is designed around two distinct decks, each serving a specific regulatory function:</p>
+    <ol>
+      <li><strong>REACTIVE FEEDBACK [REACTOR DECK]:</strong> For active stimming and grounding. It acts as an instrument, translating physical kinetic energy into sensory feedback.</li>
+      <li><strong>RHYTHMIC ENTRAINMENT [CLINICAL DECK]:</strong> For passive focus and regulation. It acts as a precise metronome for the nervous system.</li>
+    </ol>
+  </section>
+
+  <section id="reactor" class="wrap">
+    <p class="eyebrow">// DECK 01</p>
+    <h2><button type="button" class="accordion-toggle" aria-expanded="false" aria-controls="reactor-panel">
+      <span><span class="deck-reactor">REACTOR</span> [ACTIVE GROUNDING]</span>
+      <span class="chevron" aria-hidden="true">&#9662;</span>
+    </button></h2>
+    <div id="reactor-panel" class="accordion-panel" hidden>
+      <p>The Reactor Deck is the default state. It turns movement into data you can feel.</p>
+
+      <h3 class="sub">How it Works</h3>
+      <ul>
+        <li><strong>The Loop:</strong> The watch monitors linear acceleration. When you move (shake, tilt, or flick), that energy is instantly translated into haptic vibration.</li>
+        <li><strong>Stealth vs. Audio:</strong> By default, the system operates in <strong>STEALTH</strong> mode (Haptics only). Tap <strong>AUDIO: OFF</strong> to toggle <strong>AUDIO: ON</strong>. Movement will now generate a rising sci-fi synth tone proportional to your kinetic intensity.</li>
+        <li><strong>The Mirror:</strong> The phone app's <strong>Bio-Metric Visualizer</strong> mirrors your movement in real-time, creating a closed sensory loop between physical input and visual confirmation.</li>
+      </ul>
+
+      <h3 class="sub">Haptic Texture Swapping</h3>
+      <p>The Reactor isn't just one sensation. <strong>Double-Tap</strong> anywhere on the background to hot-swap the feedback texture:</p>
+      <ul>
+        <li><strong>PULSE:</strong> Standard linear feedback. Smooth and predictable.</li>
+        <li><strong>GEIGER:</strong> Probabilistic clicking. Denser clicks as intensity rises. Excellent for "fidgeting."</li>
+        <li><strong>THROB:</strong> Heavy, boosted impact (80ms). Best for deep pressure grounding.</li>
+      </ul>
+
+      <div class="shot-row">
+        <button type="button" class="shot-thumb" data-shot-name="Reactor deck on watch" data-shot-src="assets/screenshots/watch-reactor.png">
+          <span class="shot-thumb-sr">View Reactor deck screenshot, full size</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        </button>
+        <button type="button" class="shot-thumb" data-shot-name="Haptic texture swap" data-shot-src="assets/gifs/reactor-texture-swap.gif">
+          <span class="shot-thumb-sr">View haptic texture swap recording, full size</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section id="transitioning" class="wrap">
+    <p class="eyebrow">// NAVIGATION</p>
+    <h2><button type="button" class="accordion-toggle" aria-expanded="false" aria-controls="transitioning-panel">
+      Transitioning Decks
+      <span class="chevron" aria-hidden="true">&#9662;</span>
+    </button></h2>
+    <div id="transitioning-panel" class="accordion-panel" hidden>
+      <p>To prevent accidental mode switches during active use, the interface uses physical rotary input.</p>
+      <ul>
+        <li><strong>Action:</strong> Rotate the digital crown (or physical bezel).</li>
+        <li><strong>Feedback:</strong> You will feel a mechanical "click" after sufficient rotation.</li>
+        <li><strong>Result:</strong> The interface slides from <span class="deck-reactor">REACTOR</span> (Cyan) to <span class="deck-clinical">CLINICAL</span> (Red/Cyan).</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="clinical" class="wrap">
+    <p class="eyebrow">// DECK 02</p>
+    <h2><button type="button" class="accordion-toggle" aria-expanded="false" aria-controls="clinical-panel">
+      <span><span class="deck-clinical">CLINICAL</span> [PASSIVE REGULATION]</span>
+      <span class="chevron" aria-hidden="true">&#9662;</span>
+    </button></h2>
+    <div id="clinical-panel" class="accordion-panel" hidden>
+      <p>While Reactor is about input, Clinical is about output. It forces a precise, rhythmic haptic beat to help regulate breathing or maintain focus.</p>
+
+      <h3 class="sub">Configuration (Mission Control)</h3>
+      <p>Use the phone app to program the watch's firmware for this mode.</p>
+      <ul>
+        <li><strong>Waveform:</strong> Choose PULSE, GEIGER, or THROB.</li>
+        <li><strong>Frequency:</strong> Slider controls BPM (Beats Per Minute). 60 BPM is standard for calming.</li>
+        <li><strong>Intensity:</strong> Controls motor strength.</li>
+        <li><strong>Sleep Protocol:</strong> Toggle to force the watch screen and sensors off during the beat. Crucial for meditation or sleep without light pollution.</li>
+      </ul>
+
+      <h3 class="sub">The Sync Event</h3>
+      <ol>
+        <li>Tap "UPLOAD CONFIGURATION" on the phone.</li>
+        <li><strong>Phone:</strong> Animates <code>SYNCHRONIZING...</code></li>
+        <li><strong>Watch:</strong> Displays <code>[ FIRMWARE UPDATING ]</code> overlay.</li>
+        <li><strong>Result:</strong> The watch automatically loads the new settings and switches to the Clinical Deck.</li>
+      </ol>
+
+      <h3 class="sub">Engagement</h3>
+      <p>Tap <strong>INITIALIZE</strong> on the watch.</p>
+      <ul>
+        <li>A <strong>3-2-1</strong> countdown initiates.</li>
+        <li>The haptic engine begins. It uses an absolute-time drift correction algorithm to ensure it never "drags" or "rushes," staying perfectly on beat for hours.</li>
+      </ul>
+
+      <div class="shot-row">
+        <button type="button" class="shot-thumb" data-shot-name="Clinical deck on watch" data-shot-src="assets/screenshots/watch-clinical.png">
+          <span class="shot-thumb-sr">View Clinical deck screenshot, full size</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        </button>
+        <button type="button" class="shot-thumb" data-shot-name="Mission Control on phone" data-shot-src="assets/screenshots/phone-controller.png">
+          <span class="shot-thumb-sr">View Mission Control screenshot, full size</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        </button>
+        <button type="button" class="shot-thumb" data-shot-name="Sync event" data-shot-src="assets/gifs/sync-event.gif">
+          <span class="shot-thumb-sr">View sync event recording, full size</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section id="safety" class="wrap">
+    <p class="eyebrow">// SAFETY &amp; LOCKDOWN</p>
+    <h2><button type="button" class="accordion-toggle" aria-expanded="false" aria-controls="safety-panel">
+      Safety &amp; Lockdown
+      <span class="chevron" aria-hidden="true">&#9662;</span>
+    </button></h2>
+    <div id="safety-panel" class="accordion-panel" hidden>
+
+      <h3 class="sub">1. The Curtain (Focus Mode)</h3>
+      <p>If movement stops in Reactor Deck, or if Clinical Mode is active, a "Dark Curtain" fades in.</p>
+      <ul>
+        <li><strong>Why:</strong> Saves OLED screens from burn-in and reduces visual overstimulation.</li>
+        <li><strong>Wake:</strong> Tap the screen once to lift the curtain. (If Sleep Protocol is active, use the Lockdown Gesture).</li>
+      </ul>
+
+      <h3 class="sub">2. Lockdown Gesture (Emergency Stop)</h3>
+      <p>If sensation becomes overwhelming or you cannot navigate the UI:</p>
+      <ul>
+        <li><strong>Action:</strong> Place two fingers on the screen and hold for 3 seconds.</li>
+        <li><strong>Result:</strong> HARD STOP. Motors kill, audio cuts, and a confirmation buzz indicates the system is safe.</li>
+      </ul>
+
+      <h3 class="sub">3. Safe Mode</h3>
+      <p>To protect battery health, the app will refuse to run if the watch battery is below <strong>15%</strong>.</p>
+
+      <h3 class="sub">4. Exit Dialog</h3>
+      <p>Swiping "Back" triggers a <code>TERMINATE?</code> dialog to prevent accidental closure.</p>
+      <ul>
+        <li><strong>RESUME:</strong> Return to the flux.</li>
+        <li><strong>HALT:</strong> Kill the app and return to the watch face.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="setup" class="wrap">
+    <p class="eyebrow">// INITIALIZATION</p>
+    <h2><button type="button" class="accordion-toggle" aria-expanded="false" aria-controls="setup-panel">
+      Initialization
+      <span class="chevron" aria-hidden="true">&#9662;</span>
+    </button></h2>
+    <div id="setup-panel" class="accordion-panel" hidden>
+
+      <h3 class="sub">1. Phone Setup (Mission Control)</h3>
+      <p>Launch <strong>NEONFLUX Mobile</strong>.</p>
+      <ul>
+        <li>The "Bio-Metric Visualizer" will initially read <code>AWAITING TELEMETRY</code>.</li>
+        <li>Ensure Bluetooth is active. No manual pairing is required; the application utilizes the Wearable Data Layer to automatically handshake with the nearest node.</li>
+      </ul>
+
+      <h3 class="sub">2. Watch Initialization (The Node)</h3>
+      <p>Launch <strong>NEONFLUX Wear</strong>.</p>
+      <ul>
+        <li>You will be greeted by the REACTOR deck.</li>
+        <li>The central ring displays your CORE status. Note that this differs from your device battery meter, as the haptic engine draws power differently depending on the active profile.</li>
+      </ul>
+
+      <div class="shot-row">
+        <button type="button" class="shot-thumb" data-shot-name="Bio-Metric Visualizer" data-shot-src="assets/screenshots/phone-biometric.png">
+          <span class="shot-thumb-sr">View Bio-Metric Visualizer screenshot, full size</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section id="install" class="wrap">
+    <p class="eyebrow">// PROTOCOL INITIATION</p>
+    <h2><button type="button" class="accordion-toggle" aria-expanded="false" aria-controls="install-panel">
+      Installation
+      <span class="chevron" aria-hidden="true">&#9662;</span>
+    </button></h2>
+    <div id="install-panel" class="accordion-panel" hidden>
+      <h3 class="sub" style="margin-top:0;">MANUAL OVERRIDE REQUIRED</h3>
+      <p>You are attempting to install NeonFlux, an experimental haptic synchronization protocol. This software is not available on standard distribution channels (Play Store). To proceed, you must bypass Android's standard security protocols.</p>
+
+      <div class="panel warn">
+        <h3 class="sub">SECURITY WARNING: READ BEFORE PROCEEDING</h3>
+        <p>By enabling "Developer Options" and "USB/Wireless Debugging," you are lowering your device's shields.</p>
+        <ol>
+          <li><strong>Sideloading Risk:</strong> Installing APKs from unknown sources can expose your device to malicious code. Only install files obtained directly from the <a href="https://github.com/ASPDesignLabs/NEONFLUX/releases">Official NeonFlux Release Page</a>.</li>
+          <li><strong>Open Ports:</strong> ADB (Android Debug Bridge) allows external computers to send commands to your device. Always disable USB/Wireless Debugging when you are finished installing NeonFlux.</li>
+          <li><strong>Warranty Void:</strong> While rare, improper use of developer tools can destabilize your device. Proceed at your own risk.</li>
+        </ol>
+      </div>
+
+      <h3 class="sub">The Steps</h3>
+      <ol>
+        <li>01 // ACQUIRE THE BRIDGE (ADB)</li>
+        <li>02 // PREPARE THE HOST (PHONE)</li>
+        <li>03 // PREPARE THE NODE (WATCH)</li>
+        <li>04 // INJECT PAYLOAD (INSTALLATION)</li>
+        <li>05 // SYSTEM LOCKDOWN</li>
+      </ol>
+      <p>Each step is spelled out in full — exact commands per OS, where to find Developer Options, what to expect on screen — in the complete guide:</p>
+      <p><a class="btn alt" href="https://github.com/ASPDesignLabs/NEONFLUX/blob/main/INISTALLATION_GUIDE.md">Read the Full Installation Guide &rarr;</a></p>
+    </div>
+  </section>
+
+</main>
+
+<dialog class="shot-dialog" id="shotDialog">
+  <button type="button" class="shot-dialog-close" data-shot-close aria-label="Close screenshot preview">&#10005;</button>
+  <div class="shot-stage" id="shotStage">
+    <div class="shot-stage-placeholder" id="shotPlaceholder" hidden><span id="shotPlaceholderText">Screenshot coming soon</span></div>
+    <img id="shotImage" class="shot-image" alt="" draggable="false" hidden>
+  </div>
+  <div class="shot-controls">
+    <button type="button" data-shot-zoom-out aria-label="Zoom out">&minus;</button>
+    <button type="button" data-shot-zoom-reset aria-label="Reset zoom">1:1</button>
+    <button type="button" data-shot-zoom-in aria-label="Zoom in">+</button>
+  </div>
+  <p class="shot-hint">Double-click, pinch, or scroll to zoom &middot; drag or arrow keys to pan while zoomed &middot; Esc to close</p>
+</dialog>
+
+<footer id="license">
+  <div class="footer-links">
+    <a href="https://github.com/ASPDesignLabs/NEONFLUX">Source</a>
+    <a href="https://github.com/ASPDesignLabs/NEONFLUX/releases">Releases</a>
+    <a href="https://github.com/ASPDesignLabs/NEONFLUX/blob/main/LICENSE">License (GPL-3.0)</a>
+  </div>
+  <p>NeonFlux is licensed under the GNU General Public License v3.0.</p>
+</footer>
+
+<script>
+// --- NAV PILLS ---
+var navPills = document.querySelectorAll('details.nav-pill');
+navPills.forEach(function (d) {
+  d.addEventListener('toggle', function () {
+    if (d.open) navPills.forEach(function (o) { if (o !== d) o.open = false; });
+  });
+});
+document.addEventListener('click', function (e) {
+  navPills.forEach(function (d) { if (d.open && !d.contains(e.target)) d.open = false; });
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Escape') return;
+  navPills.forEach(function (d) {
+    if (d.open) { d.open = false; var s = d.querySelector('summary'); if (s) s.focus(); }
+  });
+});
+document.querySelectorAll('.nav-dropdown a').forEach(function (a) {
+  a.addEventListener('click', function () {
+    var href = a.getAttribute('href');
+    if (href && href.charAt(0) === '#') expandSectionById(href.slice(1));
+    navPills.forEach(function (d) { d.open = false; });
+  });
+});
+
+// --- ACCORDION ---
+function setExpanded(btn, expanded) {
+  btn.setAttribute('aria-expanded', String(expanded));
+  var panel = document.getElementById(btn.getAttribute('aria-controls'));
+  if (panel) panel.hidden = !expanded;
+}
+document.querySelectorAll('.accordion-toggle').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    setExpanded(btn, btn.getAttribute('aria-expanded') !== 'true');
+  });
+});
+function expandSectionById(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var btn = el.querySelector('.accordion-toggle');
+  if (btn && btn.getAttribute('aria-expanded') !== 'true') setExpanded(btn, true);
+}
+function expandFromHash() { if (location.hash) expandSectionById(location.hash.slice(1)); }
+expandFromHash();
+window.addEventListener('hashchange', expandFromHash);
+
+// --- SCREENSHOT LIGHTBOX ---
+(function () {
+  var dialog = document.getElementById('shotDialog');
+  var stage = document.getElementById('shotStage');
+  var img = document.getElementById('shotImage');
+  var placeholder = document.getElementById('shotPlaceholder');
+  var placeholderText = document.getElementById('shotPlaceholderText');
+  var lastTrigger = null;
+  var scale = 1, panX = 0, panY = 0;
+  var minScale = 1, maxScale = 4;
+  var dragging = false, dragStartX = 0, dragStartY = 0, panStartX = 0, panStartY = 0;
+  var pointers = {};
+  var pinchStartDist = 0, pinchStartScale = 1;
+
+  function applyTransform() {
+    img.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + scale + ')';
+  }
+  function resetZoom() {
+    scale = 1; panX = 0; panY = 0;
+    applyTransform();
+  }
+  function clampPan() {
+    if (scale <= 1) { panX = 0; panY = 0; return; }
+    var maxX = (stage.clientWidth * (scale - 1)) / 2;
+    var maxY = (stage.clientHeight * (scale - 1)) / 2;
+    panX = Math.max(-maxX, Math.min(maxX, panX));
+    panY = Math.max(-maxY, Math.min(maxY, panY));
+  }
+  function setScale(next) {
+    scale = Math.max(minScale, Math.min(maxScale, next));
+    if (scale === 1) { panX = 0; panY = 0; }
+    clampPan();
+    applyTransform();
+  }
+
+  document.querySelectorAll('.shot-thumb').forEach(function (btn) {
+    var src = btn.getAttribute('data-shot-src');
+    if (src) btn.style.backgroundImage = "url('" + src + "')";
+    var label = document.createElement('span');
+    label.className = 'shot-thumb-label';
+    btn.addEventListener('click', function () {
+      lastTrigger = btn;
+      var name = btn.getAttribute('data-shot-name') || 'Screenshot';
+      resetZoom();
+      img.hidden = true;
+      placeholder.hidden = true;
+      var testImg = new Image();
+      testImg.onload = function () {
+        img.src = src;
+        img.alt = name + ' — full size';
+        img.hidden = false;
+      };
+      testImg.onerror = function () {
+        placeholderText.textContent = name + ' — screenshot coming soon';
+        placeholder.hidden = false;
+      };
+      testImg.src = src;
+      dialog.showModal();
+    });
+  });
+
+  document.querySelectorAll('[data-shot-close]').forEach(function (b) {
+    b.addEventListener('click', function () { dialog.close(); });
+  });
+  dialog.addEventListener('click', function (e) {
+    var box = dialog.getBoundingClientRect();
+    var inside = e.clientX >= box.left && e.clientX <= box.right && e.clientY >= box.top && e.clientY <= box.bottom;
+    if (!inside) dialog.close();
+  });
+  dialog.addEventListener('close', function () {
+    if (lastTrigger) lastTrigger.focus();
+  });
+
+  document.querySelector('[data-shot-zoom-in]').addEventListener('click', function () { setScale(scale + 0.5); });
+  document.querySelector('[data-shot-zoom-out]').addEventListener('click', function () { setScale(scale - 0.5); });
+  document.querySelector('[data-shot-zoom-reset]').addEventListener('click', resetZoom);
+
+  stage.addEventListener('dblclick', function () { setScale(scale > 1 ? 1 : 2); });
+  stage.addEventListener('wheel', function (e) {
+    if (img.hidden) return;
+    e.preventDefault();
+    setScale(scale + (e.deltaY < 0 ? 0.3 : -0.3));
+  }, { passive: false });
+
+  stage.addEventListener('keydown', function (e) {
+    if (scale <= 1) return;
+    var step = 24;
+    if (e.key === 'ArrowLeft') { panX += step; clampPan(); applyTransform(); e.preventDefault(); }
+    else if (e.key === 'ArrowRight') { panX -= step; clampPan(); applyTransform(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { panY += step; clampPan(); applyTransform(); e.preventDefault(); }
+    else if (e.key === 'ArrowDown') { panY -= step; clampPan(); applyTransform(); e.preventDefault(); }
+  });
+  stage.tabIndex = 0;
+
+  stage.addEventListener('pointerdown', function (e) {
+    if (img.hidden) return;
+    pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var ids = Object.keys(pointers);
+    if (ids.length === 1) {
+      dragging = true;
+      dragStartX = e.clientX; dragStartY = e.clientY;
+      panStartX = panX; panStartY = panY;
+      img.classList.add('grabbing');
+      stage.setPointerCapture(e.pointerId);
+    } else if (ids.length === 2) {
+      dragging = false;
+      var pts = ids.map(function (id) { return pointers[id]; });
+      pinchStartDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      pinchStartScale = scale;
+    }
+  });
+  stage.addEventListener('pointermove', function (e) {
+    if (!(e.pointerId in pointers)) return;
+    pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var ids = Object.keys(pointers);
+    if (ids.length === 2) {
+      var pts = ids.map(function (id) { return pointers[id]; });
+      var dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      if (pinchStartDist > 0) setScale(pinchStartScale * (dist / pinchStartDist));
+    } else if (dragging && scale > 1) {
+      panX = panStartX + (e.clientX - dragStartX);
+      panY = panStartY + (e.clientY - dragStartY);
+      clampPan();
+      applyTransform();
+    }
+  });
+  function endPointer(e) {
+    delete pointers[e.pointerId];
+    if (Object.keys(pointers).length < 2) pinchStartDist = 0;
+    if (Object.keys(pointers).length === 0) { dragging = false; img.classList.remove('grabbing'); }
+  }
+  stage.addEventListener('pointerup', endPointer);
+  stage.addEventListener('pointercancel', endPointer);
+})();
+</script>
+</body>
+</html>
