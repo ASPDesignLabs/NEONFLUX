@@ -211,7 +211,7 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
         clinicalJob?.cancel()
         isRunning = true
         activeProfile = profile
-        synth.start()
+        synth.start(audioEnabled)
         val modeStr = if (audioEnabled) "REACTOR (AUDIO)" else "REACTOR (SILENT)"
         updateState(modeStr)
         scope.launch { reactorLoop(audioEnabled, profile) }
@@ -237,8 +237,10 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
     fun haltLoops() {
         isRunning = false
         clinicalJob?.cancel()
-        synth.isStandby = true
-        synth.update()
+        // Fully tear down the audio stream + native sensor thread instead of
+        // just silencing them - otherwise both keep running (and draining
+        // power) in the background for as long as the session sits idle.
+        synth.stop()
         updateState("STANDBY")
     }
 

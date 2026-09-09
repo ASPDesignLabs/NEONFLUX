@@ -14,9 +14,11 @@ void NeonSensors::updateSynthDirectly(float magnitude) {
 
 extern "C" {
 
-JNIEXPORT void JNICALL Java_com_snakesan_neonflux_SynthEngine_startNative(JNIEnv *env, jobject thiz) {
+JNIEXPORT void JNICALL Java_com_snakesan_neonflux_SynthEngine_startNative(JNIEnv *env, jobject thiz, jboolean audioEnabled) {
     if (synthEngine == nullptr) synthEngine = std::make_unique<NeonSynth>();
-    synthEngine->start();
+    // Only open the audio stream when audio output is actually wanted -
+    // haptics-only sessions still need the sensor engine below, but not the amp.
+    if (audioEnabled) synthEngine->start();
     if (sensorEngine == nullptr) sensorEngine = std::make_unique<NeonSensors>(synthEngine.get());
     sensorEngine->start();
 }

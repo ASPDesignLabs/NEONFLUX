@@ -13,16 +13,18 @@ class SynthEngine {
     var amplitude = 0.0
     var isStandby = true 
 
-    private external fun startNative()
+    private external fun startNative(audioEnabled: Boolean)
     private external fun stopNative()
     private external fun updateNative(freq: Float, amp: Float)
     private external fun setVolumeNative(vol: Float)
     private external fun pauseSensorsNative(paused: Boolean)
-    external fun getSensorMagnitude(): Float 
-    
-    fun start() { 
-        startNative()
-        pauseSensorsNative(false) 
+    external fun getSensorMagnitude(): Float
+
+    // audioEnabled=false skips opening the audio stream entirely (haptics still
+    // need the sensor engine, but there's no reason to power the amp for it).
+    fun start(audioEnabled: Boolean = true) {
+        startNative(audioEnabled)
+        pauseSensorsNative(false)
     }
     
     fun stop() { 
