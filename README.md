@@ -86,9 +86,9 @@ Tap **INITIALIZE** on the watch.
 ## // SAFETY & LOCKDOWN
 
 ### **1. The Curtain (Focus Mode)**
-If movement stops in Reactor Deck, or if Clinical Mode is active, a "Dark Curtain" fades in.
-*   **Why:** Saves OLED screens from burn-in and reduces visual overstimulation.
-*   **Wake:** Tap the screen once to lift the curtain. (If Sleep Protocol is active, use the Lockdown Gesture).
+While Clinical Mode is running with Sleep Protocol enabled, a "Dark Curtain" fades in, dimming the UI to near-black. Outside of Sleep Protocol, the deck UI stays up so it's always clear what's running.
+*   **Why:** Saves OLED screens from burn-in, preserves battery life, and reduces visual overstimulation during sleep or meditation.
+*   **Wake:** Use the Lockdown Gesture to stop the session (there's no separate "just peek" wake while Sleep Protocol is active).
 
 ### **2. Lockdown Gesture (Emergency Stop)**
 If sensation becomes overwhelming or you cannot navigate the UI:
