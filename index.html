@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>NeonFlux — Haptic Synchronization Protocol</title>
 <meta name="description" content="NEONFLUX is a combined Wear OS and Android experience that harnesses movement and haptic playback to assist with grounding and regulation." />
+<meta name="theme-color" content="#050505" />
+<link rel="canonical" href="https://aspdesignlabs.github.io/NEONFLUX/" />
 
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="NeonFlux" />
@@ -23,7 +25,7 @@
 
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23050505'/%3E%3Cg fill='none' stroke='%23FF0055' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M9 8 Q3 16 9 24'/%3E%3Cpath d='M23 8 Q29 16 23 24'/%3E%3Ccircle cx='16' cy='16' r='4'/%3E%3C/g%3E%3C/svg%3E" />
 
-<noscript><style>.accordion-panel[hidden] { display: block !important; }</style></noscript>
+<noscript><style>.reveal-panel[hidden] { display: block !important; }</style></noscript>
 
 <style>
 :root {
@@ -41,6 +43,7 @@
   --green: #00ff41;
   --font-display: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Consolas, monospace;
   --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --statusbar-h: 44px;
 }
 
 * { box-sizing: border-box; }
@@ -58,686 +61,621 @@ body {
   line-height: 1.6;
 }
 
-h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.02em; }
+h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.02em; overflow-wrap: break-word; }
 
 a { color: var(--cyan); }
-a:not(.nav-brand):not(.btn):not(.nav-dropdown a) { text-decoration-color: rgba(0,243,255,0.4); }
+a:hover { color: var(--green); }
 
 .skip-link {
   position: absolute; left: -999px; top: 0;
   background: var(--pink-bright); color: var(--void); font-family: var(--font-display);
-  padding: 0.75em 1.25em; z-index: 1000; font-weight: bold;
+  font-weight: 700; padding: 0.9em 1.4em; z-index: 100; text-decoration: none;
 }
 .skip-link:focus { left: 1em; top: 1em; }
 
 :focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 
-.wrap { max-width: 860px; margin: 0 auto; padding: 3rem 1.5rem; }
-.wrap.narrow-top { padding-top: 2rem; }
-
-.eyebrow {
-  font-family: var(--font-display);
-  color: var(--text-faint);
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  margin: 0 0 0.5rem;
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
 }
 
-/* --- NAV --- */
-nav.top {
-  position: sticky; top: 0; z-index: 10;
-  background: rgba(5,5,5,0.92);
-  backdrop-filter: blur(6px);
-  border-bottom: 1px solid var(--border);
+/* --- CUT-CORNER SHAPE SYSTEM ---
+   Ported 1:1 from the app's own Jetpack Compose CutCornerShape values
+   (androidx.compose.foundation.shape.CutCornerShape(topStart, bottomEnd)),
+   not eyeballed. Each cuts the top-left and bottom-right corners only,
+   matching the app's topStart/bottomEnd convention. Source:
+   neonfluxmobile/src/main/java/com/snakesan/neonflux/MainActivity.kt. */
+.cut-thumb  { clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px); }    /* CyberSlider thumb: CutCornerShape(4dp) */
+.cut-toggle { clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px); }    /* Sleep Protocol toggle: CutCornerShape(6dp) */
+.cut-chip   { clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }    /* CyberButton / CyberPresetButton / watch FluxButton: CutCornerShape(8dp) */
+.cut-hero   { clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px); } /* EmergencyProtocolButton / SmartSyncButton / BioFluxMonitor panel: CutCornerShape(20dp) */
+
+.btn {
+  display: inline-block; font-family: var(--font-display); text-transform: uppercase;
+  letter-spacing: 0.06em; font-weight: 700; font-size: 0.85rem; text-decoration: none;
+  padding: 0.9rem 1.6rem; border: 2px solid var(--cyan); color: var(--cyan);
+  background: rgba(0,243,255,0.08);
 }
-.nav-inner { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; padding: 0.75rem 1.5rem; max-width: 1100px; margin: 0 auto; }
-.nav-brand {
-  font-family: var(--font-display); font-weight: 900; color: var(--cyan);
-  text-decoration: none; letter-spacing: 0.05em; font-size: 1.1rem;
+.btn:hover, .btn:focus-visible { background: rgba(0,243,255,0.18); color: var(--cyan); }
+.btn.alt { border-color: var(--pink-bright); color: var(--pink); background: rgba(255,0,85,0.08); }
+.btn.alt:hover, .btn.alt:focus-visible { background: rgba(255,0,85,0.18); color: var(--pink); }
+.btn.btn-ghost { border-color: var(--border); color: var(--text-dim); background: transparent; }
+.btn.btn-ghost:hover, .btn.btn-ghost:focus-visible { border-color: var(--text-dim); color: var(--text); }
+
+blockquote {
+  margin: 1.25rem 0; padding: 1rem 1.25rem; border-left: 3px solid var(--pink-bright);
+  background: var(--graphite-2); color: var(--text); font-style: normal;
 }
-.nav-groups { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-left: auto; }
-details.nav-pill { position: relative; }
-details.nav-pill > summary {
-  list-style: none; cursor: pointer; text-transform: uppercase;
-  color: var(--text-dim); background: var(--graphite); border: 1px solid var(--border);
-  padding: 0.5rem 0.9rem; display: inline-flex; align-items: center; gap: 0.4rem;
-  font-family: var(--font-display); font-size: 0.75rem; letter-spacing: 0.05em;
+blockquote cite { display: block; margin-top: 0.6rem; font-family: var(--font-display); font-size: 0.75rem; color: var(--text-faint); font-style: normal; }
+code { font-family: var(--font-display); background: var(--graphite-2); padding: 0.1em 0.4em; border: 1px solid var(--border); font-size: 0.85em; color: var(--green); }
+
+/* ============================================================
+   Status bar -- persistent chrome, styled as the phone's own
+   Android status bar (clock + battery) rather than a website nav
+   ribbon. The only functional control in it is the DECKS menu, a
+   single native <details> disclosure. */
+.statusbar {
+  position: sticky; top: 0; z-index: 40; height: var(--statusbar-h);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 1rem; background: var(--void); border-bottom: 1px solid var(--border);
+  font-family: var(--font-display); font-size: 0.75rem;
 }
-details.nav-pill > summary::-webkit-details-marker { display: none; }
-details.nav-pill > summary::marker { content: ""; }
-details.nav-pill[open] > summary { color: var(--cyan); border-color: var(--cyan); }
-details.nav-pill > summary .car { transition: transform 0.15s ease; display: inline-block; }
-details.nav-pill[open] > summary .car { transform: rotate(180deg); }
-.nav-dropdown {
-  position: absolute; top: calc(100% + 6px); left: 0; min-width: 230px;
+.statusbar-clock { color: var(--text-dim); letter-spacing: 0.05em; }
+.statusbar-right { display: flex; align-items: center; gap: 0.9rem; }
+.statusbar-battery { width: 22px; height: 11px; color: var(--text-dim); }
+
+details.deck-select { position: relative; }
+details.deck-select > summary {
+  list-style: none; cursor: pointer; color: var(--cyan); letter-spacing: 0.1em;
+  font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;
+  min-height: 44px; padding: 4px 2px;
+}
+details.deck-select > summary::-webkit-details-marker { display: none; }
+details.deck-select > summary::marker { content: ""; }
+details.deck-select[open] > summary { color: var(--green); }
+details.deck-select > summary .car { transition: transform 0.15s ease; display: inline-block; }
+details.deck-select[open] > summary .car { transform: rotate(180deg); }
+.deck-select-menu {
+  position: absolute; top: calc(100% + 8px); right: 0; min-width: 220px;
   background: var(--graphite); border: 1px solid var(--cyan);
   box-shadow: 0 20px 40px rgba(0,0,0,0.6); padding: 0.4rem 0; z-index: 20;
 }
-.nav-dropdown a { display: block; padding: 0.55rem 1rem; color: var(--text-dim); text-decoration: none; font-size: 0.85rem; }
-.nav-dropdown a:hover, .nav-dropdown a:focus-visible { color: var(--cyan); background: var(--graphite-2); }
+.deck-select-menu a { display: block; padding: 0.6rem 1rem; color: var(--text-dim); text-decoration: none; font-size: 0.8rem; }
+.deck-select-menu a:hover, .deck-select-menu a:focus-visible { color: var(--cyan); background: rgba(0,243,255,0.06); }
 
-/* --- HERO --- */
-.hero { text-align: center; padding: 4rem 1.5rem 2rem; }
-.hero h1 {
-  font-size: clamp(1.6rem, 4.5vw, 2.6rem);
-  color: var(--cyan);
-  margin: 0 0 0.75rem;
-  text-shadow: 0 0 24px rgba(0,243,255,0.35);
-}
-.hero .tagline {
-  font-family: var(--font-display); color: var(--pink); font-size: 1.1rem;
-  letter-spacing: 0.03em; margin: 0 0 1.5rem; font-style: normal;
-}
-.hero p.lede { max-width: 640px; margin: 0 auto 1rem; color: var(--text-dim); font-size: 1.05rem; }
-.hero p.req { color: var(--text-faint); font-size: 0.85rem; margin: 0 0 2rem; }
-.hero-ctas { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem; }
-
-.btn {
-  display: inline-block; text-decoration: none; font-family: var(--font-display);
-  font-weight: bold; font-size: 0.85rem; letter-spacing: 0.03em;
-  padding: 0.8em 1.4em; border: 1px solid var(--cyan); color: var(--cyan);
-  background: rgba(0,243,255,0.08);
-  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
-}
-.btn:hover, .btn:focus-visible { background: rgba(0,243,255,0.18); }
-.btn.alt { border-color: var(--pink-bright); color: var(--pink); background: rgba(255,0,85,0.08); }
-.btn.alt:hover, .btn.alt:focus-visible { background: rgba(255,0,85,0.18); }
-.btn.ghost { border-color: var(--border); color: var(--text-dim); background: transparent; }
-.btn.ghost:hover, .btn.ghost:focus-visible { border-color: var(--text-dim); color: var(--text); }
-
-.disclaimer {
-  max-width: 560px; margin: 0 auto; padding: 0.9rem 1.2rem;
-  border: 1px solid var(--border); color: var(--text-faint); font-size: 0.85rem;
-  background: var(--graphite);
-  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+/* ============================================================
+   Decks -- each is one recreated app screen (or, where the app has
+   no single literal screen for the topic, the same phone-frame shell
+   carrying real prose). A small meta label above each frame identifies
+   the deck; everything inside the frame is the real thing. */
+.deck { max-width: 640px; margin: 0 auto; padding: 2.5rem 1.25rem; }
+.deck-eyebrow {
+  text-align: center; font-family: var(--font-display); text-transform: uppercase;
+  letter-spacing: 0.15em; color: var(--text-faint); font-size: 0.7rem; font-weight: 700; margin: 0 0 1rem;
 }
 
-/* --- STATUS BANNER --- */
-.status-banner {
-  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
-  background: var(--graphite);
+.phone-frame {
+  width: min(100%, 360px); margin: 0 auto; background: var(--void);
+  border: 2px solid var(--border); border-radius: 34px; /* the one place a real rounded corner belongs -- it's a physical device */
+  padding: 14px 14px 20px; box-shadow: 0 30px 60px rgba(0,0,0,0.55);
 }
-.status-inner {
-  max-width: 860px; margin: 0 auto; padding: 1.25rem 1.5rem;
-  display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap;
-}
-.status-badge {
-  font-family: var(--font-display); font-size: 0.7rem; font-weight: bold;
-  color: var(--void); background: var(--orange);
-  padding: 0.3em 0.6em; letter-spacing: 0.05em; white-space: nowrap;
-}
-.status-text { flex: 1; min-width: 240px; color: var(--text-dim); font-size: 0.9rem; }
-.status-text strong { color: var(--text); }
-.status-links { display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.85rem; }
+.phone-notch { width: 70px; height: 6px; margin: 0 auto 12px; background: var(--border); border-radius: 3px; }
+.phone-screen { text-align: center; }
 
-/* --- SECTIONS --- */
-section.wrap h2 { font-size: 1.4rem; color: var(--text); margin: 0 0 1rem; }
-section.wrap h2 .deck-reactor { color: var(--cyan); }
-section.wrap h2 .deck-clinical { color: var(--pink); }
-h3.sub { font-family: var(--font-display); font-size: 0.95rem; color: var(--cyan); margin: 1.5rem 0 0.5rem; letter-spacing: 0.02em; }
-section.wrap p { color: var(--text-dim); }
-section.wrap ul, section.wrap ol { color: var(--text-dim); padding-left: 1.3rem; }
-section.wrap li { margin-bottom: 0.5rem; }
-section.wrap li strong { color: var(--text); }
-.panel {
-  background: var(--graphite); border: 1px solid var(--border); padding: 1.25rem 1.5rem;
-  margin: 1rem 0;
-  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
-}
-.panel.warn { border-color: var(--pink-bright); }
-.panel.warn h3.sub { color: var(--pink); margin-top: 0; }
+.dash-header-title { font-family: var(--font-display); color: var(--cyan); font-weight: 800; letter-spacing: 0.15em; font-size: 1.1rem; margin: 0; text-shadow: 0 0 12px rgba(0,243,255,0.35); }
+.dash-header-sub { font-family: var(--font-display); color: var(--text-faint); font-size: 0.6rem; letter-spacing: 0.15em; margin: 0.2rem 0 0.9rem; }
 
-/* --- ACCORDION --- */
-.accordion-toggle {
-  all: unset; display: flex; align-items: baseline; justify-content: space-between;
-  gap: 0.6rem; width: 100%; cursor: pointer; color: inherit; box-sizing: border-box;
+/* An in-app-style notice strip, standing in for a plain website banner --
+   still styled as something the app itself would show, not page chrome. */
+.sys-notice {
+  text-align: left; background: rgba(255,153,0,0.08); border: 1px solid var(--orange);
+  padding: 0.6rem 0.75rem; font-size: 0.7rem; color: var(--text-dim); margin: 0 0 0.9rem;
 }
-.accordion-toggle:hover { color: var(--cyan); }
-.accordion-toggle:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
-.accordion-toggle .chevron { transition: transform 0.15s ease; color: var(--text-faint); flex-shrink: 0; }
-.accordion-toggle[aria-expanded="true"] .chevron { transform: rotate(180deg); }
-.accordion-panel { margin-top: 1rem; }
+.sys-notice strong { color: var(--orange); font-family: var(--font-display); }
+.sys-notice a { color: var(--orange); }
+.sys-notice.critical { background: rgba(255,0,85,0.08); border-color: var(--pink-bright); }
+.sys-notice.critical strong, .sys-notice.critical a { color: var(--pink); }
 
-/* --- SCREENSHOTS / LIGHTBOX --- */
-.shot-row { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1.5rem 0; }
-.shot-thumb {
-  width: 96px; height: 96px; padding: 0; cursor: pointer;
-  background-color: var(--graphite-2); background-size: cover; background-position: center;
-  border: 1px solid var(--border); color: var(--text-faint);
-  display: flex; align-items: center; justify-content: center;
-  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
-}
-.shot-thumb:hover, .shot-thumb:focus-visible { border-color: var(--cyan); color: var(--cyan); }
-.shot-thumb-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
-.shot-thumb svg { width: 22px; height: 22px; }
-.shot-thumb-label { font-size: 0.7rem; color: var(--text-faint); align-self: center; max-width: 96px; }
+/* --- Generic reveal (tap-to-expand), used where a deck's real screen
+   has more depth than fits the recreation -- a "read more" layer, not
+   a way to hide primary content (see the noscript rule above). --- */
+.reveal-btn { all: unset; display: block; width: 100%; cursor: pointer; font: inherit; color: inherit; }
+.reveal-btn:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+.reveal-panel { padding-top: 0.9rem; }
 
-dialog.shot-dialog {
-  border: 1px solid var(--cyan); background: var(--graphite); color: var(--text);
-  padding: 1rem; max-width: min(90vw, 640px); max-height: 90vh; overflow-y: auto;
+.brief-toggle-row { margin-top: 12px; }
+.brief-toggle {
+  height: 40px; display: flex; align-items: center; justify-content: center;
+  padding: 0 14px; background: rgba(128,128,128,0.15); border: 1px solid transparent;
 }
-dialog.shot-dialog::backdrop { background: rgba(0,0,0,0.8); }
-.shot-dialog-close {
-  position: absolute; top: 0.75rem; right: 0.75rem; background: var(--graphite-2);
-  border: 1px solid var(--border); color: var(--text); width: 32px; height: 32px; cursor: pointer;
-}
-.shot-dialog-close:hover, .shot-dialog-close:focus-visible { border-color: var(--pink-bright); color: var(--pink); }
-.shot-stage {
-  position: relative; overflow: hidden; width: 100%; height: 60vh;
-  display: flex; align-items: center; justify-content: center;
-  background: var(--void); touch-action: none;
-}
-.shot-stage-placeholder {
-  text-align: center; color: var(--text-faint); font-family: var(--font-display); font-size: 0.85rem;
-  padding: 1rem; background-image: repeating-linear-gradient(45deg, var(--graphite-2), var(--graphite-2) 10px, var(--graphite) 10px, var(--graphite) 20px);
-  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
-}
-.shot-image { max-width: none; cursor: grab; user-select: none; }
-.shot-image.grabbing { cursor: grabbing; }
-.shot-controls { display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.75rem; }
-.shot-controls button {
-  background: var(--graphite-2); border: 1px solid var(--border); color: var(--text);
-  width: 40px; height: 36px; cursor: pointer; font-family: var(--font-display);
-}
-.shot-controls button:hover, .shot-controls button:focus-visible { border-color: var(--cyan); color: var(--cyan); }
-.shot-hint { text-align: center; color: var(--text-faint); font-size: 0.75rem; margin: 0.6rem 0 0; }
+.brief-toggle[aria-expanded="true"] { background: rgba(255,0,85,0.15); }
+.brief-toggle-text { font-family: var(--font-display); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.1em; color: var(--text-faint); }
+.brief-toggle[aria-expanded="true"] .brief-toggle-text { color: var(--pink); }
+.brief-panel { text-align: left; background: var(--graphite-2); padding: 1rem; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 0.85rem; }
+.brief-panel p { margin: 0 0 0.9rem; }
+.brief-panel .tagline { font-family: var(--font-display); color: var(--cyan); font-weight: 700; font-size: 0.95rem; }
+.brief-panel strong { color: var(--text); }
 
-/* --- FOOTER --- */
-footer { border-top: 1px solid var(--border); padding: 2.5rem 1.5rem; text-align: center; color: var(--text-faint); font-size: 0.85rem; }
-footer a { color: var(--text-dim); }
-footer .footer-links { display: flex; gap: 1.25rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem; }
+.feature-list { padding-left: 1.2rem; margin: 0.75rem 0; text-align: left; }
+.feature-list li { margin-bottom: 0.6rem; }
+.feature-list strong { color: var(--text); }
 
-@media (max-width: 640px) {
-  .nav-inner { flex-direction: column; align-items: flex-start; }
-  .nav-groups { margin-left: 0; }
-  .hero { padding-top: 2.5rem; }
+.deck-copy { text-align: left; color: var(--text-dim); font-size: 0.85rem; max-width: 46ch; margin: 1.25rem auto 0; }
+.deck-copy p { margin: 0 0 0.85rem; }
+.deck-copy ol { padding-left: 1.2rem; }
+.deck-copy li { margin-bottom: 0.5rem; }
+.deck-copy h3 { font-family: var(--font-display); color: var(--text); font-size: 0.8rem; letter-spacing: 0.03em; margin: 1.25rem 0 0.5rem; }
+.deck-copy h3:first-child { margin-top: 0; }
+.step-list { list-style: none; padding-left: 0; font-family: var(--font-display); font-size: 0.8rem; }
+.step-list li { color: var(--text-dim); }
+
+.about-links { display: flex; flex-direction: column; gap: 0.6rem; margin: 1rem 0; }
+.about-links .btn { text-align: center; }
+.deck-disclaimer { text-align: center; font-size: 0.75rem; color: var(--text-faint); margin: 1rem 0 0; }
+
+/* --- Mission Control screen recreation (Deck 01). role="img" below
+   removes its decorative internals from the accessibility tree -- the
+   same information already exists as real text in the sys-notice above
+   it and the brief panel below it, so nothing is lost. --- */
+.ps-statusbar { display: flex; justify-content: space-between; color: var(--text-dim); font-family: var(--font-display); font-size: 0.6rem; padding-bottom: 0.6rem; letter-spacing: 0.05em; }
+.ps-label { margin: 0 0 0.4rem; color: var(--text-dim); font-family: var(--font-display); font-size: 0.6rem; font-weight: bold; letter-spacing: 0.05em; }
+.ps-hint { margin: -0.3rem 0 0.5rem; color: var(--text-faint); font-family: var(--font-display); font-size: 0.5rem; }
+.ps-row { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
+.ps-chip {
+  flex: 1 1 0; min-width: 58px; text-align: center; font-family: var(--font-display);
+  padding: 0.5rem 0.3rem; font-size: 0.55rem; font-weight: bold; letter-spacing: 0.03em;
+  background: var(--graphite-2); color: var(--text-dim); border: none;
 }
+.ps-chip-on { background: var(--cyan); color: #001014; }
+.ps-chip-outline { background: transparent; border: 1px solid #444; color: var(--text-dim); }
+.ps-slider { margin-bottom: 0.75rem; }
+.ps-slider-label { display: flex; justify-content: space-between; font-family: var(--font-display); font-size: 0.6rem; margin-bottom: 0.3rem; }
+.ps-slider-label span { color: var(--cyan); }
+.ps-slider-label strong { color: var(--text); }
+.ps-track { position: relative; height: 4px; background: var(--graphite-2); }
+.ps-fill { position: absolute; top: 0; left: 0; height: 100%; background: var(--pink-bright); }
+.ps-thumb { position: absolute; top: 50%; width: 14px; height: 14px; background: var(--pink-bright); border: 1px solid var(--text); transform: translate(-50%, -50%); }
+.ps-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin-bottom: 0.9rem; }
+.ps-toggle-title { margin: 0; font-family: var(--font-display); font-size: 0.6rem; font-weight: bold; color: var(--text-dim); }
+.ps-toggle-desc { margin: 0.1rem 0 0; font-size: 0.5rem; color: var(--text-faint); font-family: var(--font-body); }
+.ps-toggle-off { flex-shrink: 0; width: 44px; text-align: center; padding: 0.4rem 0; font-family: var(--font-display); font-size: 0.5rem; font-weight: bold; background: rgba(255,255,255,0.06); border: 1px solid var(--graphite-2); color: var(--text-dim); }
+.ps-emergency {
+  position: relative; overflow: hidden; text-align: center; padding: 0.9rem; margin-bottom: 0.8rem;
+  background: var(--graphite-2); background-image: repeating-linear-gradient(135deg, rgba(255,0,85,0.15) 0 12px, transparent 12px 24px);
+}
+.ps-emergency span { position: relative; font-family: var(--font-display); font-size: 0.7rem; font-weight: 900; letter-spacing: 0.1em; color: var(--text); }
+.ps-bio { margin-bottom: 0.8rem; }
+.ps-bio-head { display: flex; justify-content: space-between; font-family: var(--font-display); font-size: 0.55rem; font-weight: bold; margin-bottom: 0.3rem; }
+.ps-bio-head span:first-child { color: var(--cyan); }
+.ps-bio-status { color: var(--text-faint); }
+.ps-bio-trace { background: #000; border: 1px solid var(--graphite-2); height: 56px; }
+.ps-bio-trace svg { width: 100%; height: 100%; }
+.ps-bio-trace path { fill: none; stroke: var(--text-faint); stroke-width: 1.5; }
+.ps-sync { text-align: center; padding: 0.9rem; background: var(--pink-bright); }
+.ps-sync span { font-family: var(--font-display); font-size: 0.68rem; font-weight: bold; letter-spacing: 0.05em; color: var(--void); }
+
+/* --- Watch deck recreation (Deck 02/03), nested inside a phone-frame
+   shell the same way every other deck is -- the phone screen here is
+   "about" the watch, not literally rendered by it. --- */
+.watch-mockup-row { display: flex; justify-content: center; margin: 1.25rem 0; }
+.watch-frame {
+  width: min(100%, 190px); aspect-ratio: 1 / 1; margin: 0 auto; border-radius: 50%;
+  background: #000; border: 9px solid #1c1c1c; box-shadow: 0 20px 40px rgba(0,0,0,0.5), inset 0 0 0 2px var(--border);
+  padding: 12px;
+}
+.watch-screen {
+  width: 100%; height: 100%; border-radius: 50%; background: var(--void);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 0.35rem; font-family: var(--font-display); overflow: hidden;
+}
+.wf-deck-label { margin: 0; font-size: 0.65rem; font-weight: 900; letter-spacing: 0.15em; }
+.wf-ring-outer { width: 78px; height: 78px; border-radius: 50%; display: grid; place-items: center; }
+.wf-ring-inner { width: 60px; height: 60px; border-radius: 50%; background: var(--void); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.wf-core-label { font-size: 0.4rem; color: var(--text-faint); font-weight: bold; }
+.wf-core-value { font-size: 0.95rem; color: var(--text); font-weight: bold; line-height: 1.1; }
+.wf-core-sub { font-size: 0.45rem; color: var(--cyan); }
+.wf-audio { margin-top: 0.15rem; padding: 0.35rem 0.7rem; background: rgba(0,243,255,0.15); border: 1px solid rgba(0,243,255,0.5); color: var(--cyan); font-size: 0.5rem; font-weight: bold; }
+.wf-stats-row { display: flex; gap: 1rem; }
+.wf-stats-row > div { display: flex; flex-direction: column; align-items: center; }
+.wf-stat-label { font-size: 0.4rem; color: var(--text-faint); font-weight: bold; }
+.wf-stat-value { font-size: 0.85rem; color: var(--cyan); font-weight: bold; }
+.wf-prog { margin: 0; font-size: 0.45rem; color: var(--text-faint); }
+.wf-prog strong { color: var(--text); }
+.wf-init { margin-top: 0.1rem; padding: 0.35rem 0.7rem; background: rgba(255,0,85,0.15); border: 1px solid rgba(255,0,85,0.5); color: var(--pink); font-size: 0.5rem; font-weight: bold; }
+.watch-caption { text-align: center; color: var(--text-faint); font-size: 0.75rem; max-width: 46ch; margin: 0.75rem auto 0; }
 </style>
 </head>
 <body>
+
 <a class="skip-link" href="#main">Skip to main content</a>
 
-<nav class="top" aria-label="Section navigation">
-  <div class="nav-inner">
-    <a class="nav-brand" href="#main">NEONFLUX</a>
-    <div class="nav-groups">
-      <details class="nav-pill">
-        <summary>The Decks <span class="car" aria-hidden="true">&#9662;</span></summary>
-        <div class="nav-dropdown">
-          <a href="#how-it-works">How It Works</a>
-          <a href="#reactor">Deck 01: Reactor</a>
-          <a href="#clinical">Deck 02: Clinical</a>
-          <a href="#transitioning">Transitioning Decks</a>
-        </div>
-      </details>
-      <details class="nav-pill">
-        <summary>Safety <span class="car" aria-hidden="true">&#9662;</span></summary>
-        <div class="nav-dropdown">
-          <a href="#safety">Safety &amp; Lockdown</a>
-        </div>
-      </details>
-      <details class="nav-pill">
-        <summary>Get Started <span class="car" aria-hidden="true">&#9662;</span></summary>
-        <div class="nav-dropdown">
-          <a href="#setup">Initialization</a>
-          <a href="#install">Installation</a>
-        </div>
-      </details>
-      <details class="nav-pill">
-        <summary>Project <span class="car" aria-hidden="true">&#9662;</span></summary>
-        <div class="nav-dropdown">
-          <a href="https://github.com/ASPDesignLabs/NEONFLUX/releases">Releases</a>
-          <a href="https://github.com/ASPDesignLabs/NEONFLUX">Source</a>
-          <a href="#license">License</a>
-        </div>
-      </details>
-    </div>
+<header class="statusbar">
+  <span class="statusbar-clock" id="statusClock" aria-hidden="true">9:41</span>
+  <div class="statusbar-right">
+    <svg class="statusbar-battery" viewBox="0 0 24 12" aria-hidden="true" focusable="false">
+      <rect x="0.5" y="0.5" width="20" height="11" rx="2" ry="2" fill="none" stroke="currentColor"/>
+      <rect x="21.5" y="4" width="2" height="4" fill="currentColor"/>
+      <rect x="2" y="2" width="16" height="8" fill="currentColor"/>
+    </svg>
+    <details class="deck-select">
+      <summary>DECKS <span class="car" aria-hidden="true">&#9662;</span></summary>
+      <div class="deck-select-menu">
+        <a href="#deck-mission">01 Mission Control</a>
+        <a href="#deck-reactor">02 Reactor</a>
+        <a href="#deck-clinical">03 Clinical</a>
+        <a href="#deck-safety">04 Safety &amp; Lockdown</a>
+        <a href="#deck-setup">05 Initialization</a>
+        <a href="#deck-install">06 Installation</a>
+      </div>
+    </details>
   </div>
-</nav>
+</header>
 
 <main id="main">
 
-  <section class="hero">
-    <h1>// NEONFLUX: HAPTIC SYNCHRONIZATION PROTOCOL</h1>
-    <p class="tagline">Invisible. Reactive. Ready when you are.</p>
-    <p class="lede">NEONFLUX is a combined Wear OS and Android experience that harnesses movement and haptic playback to assist with grounding and regulation.</p>
-    <p class="req">Requirements: Android Studio (to build) or ADB (to sideload).</p>
-    <div class="hero-ctas">
-      <a class="btn" href="https://github.com/ASPDesignLabs/NEONFLUX/releases/tag/v1.0-beta.1">View Releases</a>
-      <a class="btn alt" href="#install">Installation Guide</a>
-      <a class="btn ghost" href="https://github.com/ASPDesignLabs/NEONFLUX">Source on GitHub</a>
-    </div>
-    <p class="disclaimer">NeonFlux is an experimental tool. Use responsibly.</p>
-  </section>
+  <section id="deck-mission" class="deck">
+    <p class="deck-eyebrow">Deck 01 // The Phone App</p>
+    <div class="phone-frame">
+      <div class="phone-notch" aria-hidden="true"></div>
+      <div class="phone-screen">
 
-  <div class="status-banner">
-    <div class="status-inner">
-      <span class="status-badge">v1.0 BETA</span>
-      <p class="status-text">
-        <strong>This software is not available on standard distribution channels (Play Store).</strong>
-        Installing it means sideloading via ADB. See <a href="#install">Installation</a> below before you start.
-      </p>
-      <div class="status-links">
-        <a href="https://github.com/ASPDesignLabs/NEONFLUX/releases/tag/v1.0-beta.1">Official NeonFlux Release Page</a>
-      </div>
-    </div>
-  </div>
+        <div class="sys-notice">
+          <strong>Status:</strong> v1.0 beta. Not distributed on the Play
+          Store — installing it means sideloading via ADB. See
+          <a href="#deck-install">Installation</a>.
+        </div>
 
-  <section id="how-it-works" class="wrap narrow-top">
-    <p class="eyebrow">// CORE PHILOSOPHY</p>
-    <h2>Two Decks, Two Jobs</h2>
-    <p>NEONFLUX is designed around two distinct decks, each serving a specific regulatory function:</p>
-    <ol>
-      <li><strong>REACTIVE FEEDBACK [REACTOR DECK]:</strong> For active stimming and grounding. It acts as an instrument, translating physical kinetic energy into sensory feedback.</li>
-      <li><strong>RHYTHMIC ENTRAINMENT [CLINICAL DECK]:</strong> For passive focus and regulation. It acts as a precise metronome for the nervous system.</li>
-    </ol>
-  </section>
+        <div role="img" aria-label="Mission Control screen: header reads NEON // FLUX, Clinical Controller. Waveform is set to Pulse, with Geiger, Throb and Custom also available. Frequency slider at 60 BPM. Intensity slider at 50%. Sleep Protocol is off. Memory bank buttons read Engram, Daemon, Ghost and Enable. Below that, an Emergency Protocol button, the Bio-Metric Visualizer reading Awaiting Telemetry, and an Upload Configuration button.">
+          <div aria-hidden="true">
+            <div class="ps-statusbar"><span>9:41</span><span>100%</span></div>
+            <h1 class="dash-header-title">NEON // FLUX</h1>
+            <p class="dash-header-sub">CLINICAL CONTROLLER</p>
 
-  <section id="reactor" class="wrap">
-    <p class="eyebrow">// DECK 01</p>
-    <h2><button type="button" class="accordion-toggle" aria-expanded="false" aria-controls="reactor-panel">
-      <span><span class="deck-reactor">REACTOR</span> [ACTIVE GROUNDING]</span>
-      <span class="chevron" aria-hidden="true">&#9662;</span>
-    </button></h2>
-    <div id="reactor-panel" class="accordion-panel" hidden>
-      <p>The Reactor Deck is the default state. It turns movement into data you can feel.</p>
+            <p class="ps-label">WAVEFORM</p>
+            <div class="ps-row">
+              <span class="ps-chip cut-chip ps-chip-on">PULSE</span>
+              <span class="ps-chip cut-chip">GEIGER</span>
+              <span class="ps-chip cut-chip">THROB</span>
+              <span class="ps-chip cut-chip">CUSTOM</span>
+            </div>
 
-      <h3 class="sub">How it Works</h3>
-      <ul>
-        <li><strong>The Loop:</strong> The watch monitors linear acceleration. When you move (shake, tilt, or flick), that energy is instantly translated into haptic vibration.</li>
-        <li><strong>Stealth vs. Audio:</strong> By default, the system operates in <strong>STEALTH</strong> mode (Haptics only). Tap <strong>AUDIO: OFF</strong> to toggle <strong>AUDIO: ON</strong>. Movement will now generate a rising sci-fi synth tone proportional to your kinetic intensity.</li>
-        <li><strong>The Mirror:</strong> The phone app's <strong>Bio-Metric Visualizer</strong> mirrors your movement in real-time, creating a closed sensory loop between physical input and visual confirmation.</li>
-      </ul>
+            <div class="ps-slider">
+              <div class="ps-slider-label"><span>FREQUENCY (BPM)</span><strong>60</strong></div>
+              <div class="ps-track"><div class="ps-fill" style="width:23%"></div><div class="ps-thumb cut-thumb" style="left:23%"></div></div>
+            </div>
 
-      <h3 class="sub">Haptic Texture Swapping</h3>
-      <p>The Reactor isn't just one sensation. <strong>Double-Tap</strong> anywhere on the background to hot-swap the feedback texture:</p>
-      <ul>
-        <li><strong>PULSE:</strong> Standard linear feedback. Smooth and predictable.</li>
-        <li><strong>GEIGER:</strong> Probabilistic clicking. Denser clicks as intensity rises. Excellent for "fidgeting."</li>
-        <li><strong>THROB:</strong> Heavy, boosted impact (80ms). Best for deep pressure grounding.</li>
-      </ul>
+            <div class="ps-slider">
+              <div class="ps-slider-label"><span>INTENSITY</span><strong>50%</strong></div>
+              <div class="ps-track"><div class="ps-fill" style="width:50%"></div><div class="ps-thumb cut-thumb" style="left:50%"></div></div>
+            </div>
 
-      <div class="shot-row">
-        <button type="button" class="shot-thumb" data-shot-name="Reactor deck on watch" data-shot-src="assets/screenshots/watch-reactor.png">
-          <span class="shot-thumb-sr">View Reactor deck screenshot, full size</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-        </button>
-        <button type="button" class="shot-thumb" data-shot-name="Haptic texture swap" data-shot-src="assets/gifs/reactor-texture-swap.gif">
-          <span class="shot-thumb-sr">View haptic texture swap recording, full size</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-        </button>
-      </div>
-    </div>
-  </section>
+            <div class="ps-toggle-row">
+              <div>
+                <p class="ps-toggle-title">SLEEP PROTOCOL</p>
+                <p class="ps-toggle-desc">Disable sensors &amp; screen during Clinical</p>
+              </div>
+              <span class="ps-toggle-off cut-toggle">OFF</span>
+            </div>
 
-  <section id="transitioning" class="wrap">
-    <p class="eyebrow">// NAVIGATION</p>
-    <h2><button type="button" class="accordion-toggle" aria-expanded="false" aria-controls="transitioning-panel">
-      Transitioning Decks
-      <span class="chevron" aria-hidden="true">&#9662;</span>
-    </button></h2>
-    <div id="transitioning-panel" class="accordion-panel" hidden>
-      <p>To prevent accidental mode switches during active use, the interface uses physical rotary input.</p>
-      <ul>
-        <li><strong>Action:</strong> Rotate the digital crown (or physical bezel).</li>
-        <li><strong>Feedback:</strong> You will feel a mechanical "click" after sufficient rotation.</li>
-        <li><strong>Result:</strong> The interface slides from <span class="deck-reactor">REACTOR</span> (Cyan) to <span class="deck-clinical">CLINICAL</span> (Red/Cyan).</li>
-      </ul>
-    </div>
-  </section>
+            <p class="ps-label">MEMORY BANKS</p>
+            <p class="ps-hint">LONG PRESS: WRITE // TAP: READ</p>
+            <div class="ps-row">
+              <span class="ps-chip cut-chip ps-chip-outline">ENGRAM</span>
+              <span class="ps-chip cut-chip ps-chip-outline">DAEMON</span>
+              <span class="ps-chip cut-chip ps-chip-outline">GHOST</span>
+              <span class="ps-chip cut-chip ps-chip-outline">ENABLE</span>
+            </div>
 
-  <section id="clinical" class="wrap">
-    <p class="eyebrow">// DECK 02</p>
-    <h2><button type="button" class="accordion-toggle" aria-expanded="false" aria-controls="clinical-panel">
-      <span><span class="deck-clinical">CLINICAL</span> [PASSIVE REGULATION]</span>
-      <span class="chevron" aria-hidden="true">&#9662;</span>
-    </button></h2>
-    <div id="clinical-panel" class="accordion-panel" hidden>
-      <p>While Reactor is about input, Clinical is about output. It forces a precise, rhythmic haptic beat to help regulate breathing or maintain focus.</p>
+            <div class="ps-emergency cut-hero"><span>EMERGENCY PROTOCOL</span></div>
 
-      <h3 class="sub">Configuration (Mission Control)</h3>
-      <p>Use the phone app to program the watch's firmware for this mode.</p>
-      <ul>
-        <li><strong>Waveform:</strong> Choose PULSE, GEIGER, or THROB.</li>
-        <li><strong>Frequency:</strong> Slider controls BPM (Beats Per Minute). 60 BPM is standard for calming.</li>
-        <li><strong>Intensity:</strong> Controls motor strength.</li>
-        <li><strong>Sleep Protocol:</strong> Toggle to force the watch screen and sensors off during the beat. Crucial for meditation or sleep without light pollution.</li>
-      </ul>
+            <div class="ps-bio">
+              <div class="ps-bio-head"><span>BIO-METRIC VISUALIZER</span><span class="ps-bio-status">AWAITING TELEMETRY</span></div>
+              <div class="ps-bio-trace cut-hero"><svg viewBox="0 0 300 56" preserveAspectRatio="none"><path d="M0,28 Q40,24 80,28 T160,28 T240,28 T300,28"/></svg></div>
+            </div>
 
-      <h3 class="sub">The Sync Event</h3>
-      <ol>
-        <li>Tap "UPLOAD CONFIGURATION" on the phone.</li>
-        <li><strong>Phone:</strong> Animates <code>SYNCHRONIZING...</code></li>
-        <li><strong>Watch:</strong> Displays <code>[ FIRMWARE UPDATING ]</code> overlay.</li>
-        <li><strong>Result:</strong> The watch automatically loads the new settings and switches to the Clinical Deck.</li>
-      </ol>
+            <div class="ps-sync cut-hero"><span>UPLOAD CONFIGURATION</span></div>
+          </div>
+        </div>
 
-      <h3 class="sub">Engagement</h3>
-      <p>Tap <strong>INITIALIZE</strong> on the watch.</p>
-      <ul>
-        <li>A <strong>3-2-1</strong> countdown initiates.</li>
-        <li>The haptic engine begins. It uses an absolute-time drift correction algorithm to ensure it never "drags" or "rushes," staying perfectly on beat for hours.</li>
-      </ul>
+        <div class="brief-toggle-row">
+          <button type="button" class="reveal-btn brief-toggle cut-chip" aria-expanded="false" aria-controls="briefPanel">
+            <span class="brief-toggle-text" data-collapsed="PROTOCOL BRIEF // TAP_TO_DECRYPT" data-expanded="PROTOCOL BRIEF // ACCESSING_ARCHIVE">PROTOCOL BRIEF // TAP_TO_DECRYPT</span>
+          </button>
+        </div>
+        <div id="briefPanel" class="reveal-panel brief-panel" hidden>
+          <p class="tagline">Invisible. Reactive. Ready when you are.</p>
+          <p>
+            NEONFLUX is a combined Wear OS and Android experience that
+            harnesses movement and haptic playback to assist with grounding
+            and regulation.
+          </p>
+          <p>It's built around two distinct decks, each serving a specific regulatory function:</p>
+          <ul class="feature-list">
+            <li><strong>Reactive Feedback [Reactor Deck]:</strong> for active stimming and grounding. It acts as an instrument, translating physical kinetic energy into sensory feedback. See <a href="#deck-reactor">Deck 02</a>.</li>
+            <li><strong>Rhythmic Entrainment [Clinical Deck]:</strong> for passive focus and regulation. It acts as a precise metronome for the nervous system. See <a href="#deck-clinical">Deck 03</a>.</li>
+          </ul>
+          <div class="about-links">
+            <a class="btn cut-hero" href="https://github.com/ASPDesignLabs/NEONFLUX/releases/tag/v1.0-beta.1">View Releases</a>
+            <a class="btn alt cut-hero" href="#deck-install">Installation Guide</a>
+            <a class="btn btn-ghost cut-hero" href="https://github.com/ASPDesignLabs/NEONFLUX">Source on GitHub</a>
+          </div>
+          <p class="deck-disclaimer">NeonFlux is an experimental tool. Use responsibly.</p>
+        </div>
 
-      <div class="shot-row">
-        <button type="button" class="shot-thumb" data-shot-name="Clinical deck on watch" data-shot-src="assets/screenshots/watch-clinical.png">
-          <span class="shot-thumb-sr">View Clinical deck screenshot, full size</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-        </button>
-        <button type="button" class="shot-thumb" data-shot-name="Mission Control on phone" data-shot-src="assets/screenshots/phone-controller.png">
-          <span class="shot-thumb-sr">View Mission Control screenshot, full size</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-        </button>
-        <button type="button" class="shot-thumb" data-shot-name="Sync event" data-shot-src="assets/gifs/sync-event.gif">
-          <span class="shot-thumb-sr">View sync event recording, full size</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-        </button>
       </div>
     </div>
   </section>
 
-  <section id="safety" class="wrap">
-    <p class="eyebrow">// SAFETY &amp; LOCKDOWN</p>
-    <h2><button type="button" class="accordion-toggle" aria-expanded="false" aria-controls="safety-panel">
-      Safety &amp; Lockdown
-      <span class="chevron" aria-hidden="true">&#9662;</span>
-    </button></h2>
-    <div id="safety-panel" class="accordion-panel" hidden>
+  <section id="deck-reactor" class="deck">
+    <p class="deck-eyebrow">// Deck 01 (on the watch)</p>
+    <div class="phone-frame">
+      <div class="phone-notch" aria-hidden="true"></div>
+      <div class="phone-screen">
+        <h2 class="dash-header-title" style="font-size:1rem;color:var(--cyan);">REACTOR</h2>
+        <p class="dash-header-sub">ACTIVE GROUNDING</p>
 
-      <h3 class="sub">1. The Curtain (Focus Mode)</h3>
-      <p>If movement stops in Reactor Deck, or if Clinical Mode is active, a "Dark Curtain" fades in.</p>
-      <ul>
-        <li><strong>Why:</strong> Saves OLED screens from burn-in and reduces visual overstimulation.</li>
-        <li><strong>Wake:</strong> Tap the screen once to lift the curtain. (If Sleep Protocol is active, use the Lockdown Gesture).</li>
-      </ul>
+        <div class="watch-mockup-row">
+          <div class="watch-frame" role="img" aria-label="Reactor deck on the watch: the CORE ring reads 72 percent with 3 hours 45 minutes remaining, and an Audio Off button sits below it.">
+            <div class="watch-screen" aria-hidden="true">
+              <p class="wf-deck-label" style="color:var(--cyan)">REACTOR</p>
+              <div class="wf-ring-outer" style="background:conic-gradient(var(--cyan) 0% 72%, var(--graphite-2) 72% 100%)">
+                <div class="wf-ring-inner">
+                  <span class="wf-core-label">CORE</span>
+                  <span class="wf-core-value">72%</span>
+                  <span class="wf-core-sub">3h 45m</span>
+                </div>
+              </div>
+              <span class="wf-audio">AUDIO: OFF</span>
+            </div>
+          </div>
+        </div>
+        <p class="watch-caption">
+          The default state on the watch. It turns movement into data you can feel — the CORE ring shown here is battery, not the haptic session itself.
+        </p>
 
-      <h3 class="sub">2. Lockdown Gesture (Emergency Stop)</h3>
-      <p>If sensation becomes overwhelming or you cannot navigate the UI:</p>
-      <ul>
-        <li><strong>Action:</strong> Place two fingers on the screen and hold for 3 seconds.</li>
-        <li><strong>Result:</strong> HARD STOP. Motors kill, audio cuts, and a confirmation buzz indicates the system is safe.</li>
-      </ul>
+        <div class="deck-copy">
+          <h3>How it works</h3>
+          <ul class="feature-list">
+            <li><strong>The Loop:</strong> the watch monitors linear acceleration. When you move (shake, tilt, or flick), that energy is instantly translated into haptic vibration.</li>
+            <li><strong>Stealth vs. Audio:</strong> by default, the system operates in <strong>STEALTH</strong> mode (haptics only). Tap <code>AUDIO: OFF</code> to toggle <code>AUDIO: ON</code> — movement will now generate a rising sci-fi synth tone proportional to your kinetic intensity.</li>
+            <li><strong>The Mirror:</strong> the phone app's Bio-Metric Visualizer (see <a href="#deck-mission">Mission Control</a>) mirrors your movement in real time, closing the sensory loop between physical input and visual confirmation.</li>
+          </ul>
 
-      <h3 class="sub">3. Safe Mode</h3>
-      <p>To protect battery health, the app will refuse to run if the watch battery is below <strong>15%</strong>.</p>
+          <h3>Haptic texture swapping</h3>
+          <p>Double-tap anywhere on the background to hot-swap the feedback texture:</p>
+          <ul class="feature-list">
+            <li><strong>Pulse:</strong> standard linear feedback. Smooth and predictable.</li>
+            <li><strong>Geiger:</strong> probabilistic clicking, denser as intensity rises. Excellent for fidgeting.</li>
+            <li><strong>Throb:</strong> heavy, boosted impact (80ms). Best for deep pressure grounding.</li>
+          </ul>
 
-      <h3 class="sub">4. Exit Dialog</h3>
-      <p>Swiping "Back" triggers a <code>TERMINATE?</code> dialog to prevent accidental closure.</p>
-      <ul>
-        <li><strong>RESUME:</strong> Return to the flux.</li>
-        <li><strong>HALT:</strong> Kill the app and return to the watch face.</li>
-      </ul>
-    </div>
-  </section>
-
-  <section id="setup" class="wrap">
-    <p class="eyebrow">// INITIALIZATION</p>
-    <h2><button type="button" class="accordion-toggle" aria-expanded="false" aria-controls="setup-panel">
-      Initialization
-      <span class="chevron" aria-hidden="true">&#9662;</span>
-    </button></h2>
-    <div id="setup-panel" class="accordion-panel" hidden>
-
-      <h3 class="sub">1. Phone Setup (Mission Control)</h3>
-      <p>Launch <strong>NEONFLUX Mobile</strong>.</p>
-      <ul>
-        <li>The "Bio-Metric Visualizer" will initially read <code>AWAITING TELEMETRY</code>.</li>
-        <li>Ensure Bluetooth is active. No manual pairing is required; the application utilizes the Wearable Data Layer to automatically handshake with the nearest node.</li>
-      </ul>
-
-      <h3 class="sub">2. Watch Initialization (The Node)</h3>
-      <p>Launch <strong>NEONFLUX Wear</strong>.</p>
-      <ul>
-        <li>You will be greeted by the REACTOR deck.</li>
-        <li>The central ring displays your CORE status. Note that this differs from your device battery meter, as the haptic engine draws power differently depending on the active profile.</li>
-      </ul>
-
-      <div class="shot-row">
-        <button type="button" class="shot-thumb" data-shot-name="Bio-Metric Visualizer" data-shot-src="assets/screenshots/phone-biometric.png">
-          <span class="shot-thumb-sr">View Bio-Metric Visualizer screenshot, full size</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-        </button>
+          <h3>Transitioning to Clinical</h3>
+          <p>
+            Rotate the digital crown (or physical bezel) to switch decks — a
+            physical gesture instead of a tap, to prevent accidental mode
+            switches during active use. You'll feel a mechanical click, then
+            the interface slides to <a href="#deck-clinical">Clinical</a>.
+          </p>
+        </div>
       </div>
     </div>
   </section>
 
-  <section id="install" class="wrap">
-    <p class="eyebrow">// PROTOCOL INITIATION</p>
-    <h2><button type="button" class="accordion-toggle" aria-expanded="false" aria-controls="install-panel">
-      Installation
-      <span class="chevron" aria-hidden="true">&#9662;</span>
-    </button></h2>
-    <div id="install-panel" class="accordion-panel" hidden>
-      <h3 class="sub" style="margin-top:0;">MANUAL OVERRIDE REQUIRED</h3>
-      <p>You are attempting to install NeonFlux, an experimental haptic synchronization protocol. This software is not available on standard distribution channels (Play Store). To proceed, you must bypass Android's standard security protocols.</p>
+  <section id="deck-clinical" class="deck">
+    <p class="deck-eyebrow">// Deck 02 (on the watch)</p>
+    <div class="phone-frame">
+      <div class="phone-notch" aria-hidden="true"></div>
+      <div class="phone-screen">
+        <h2 class="dash-header-title" style="font-size:1rem;color:var(--pink-bright);">CLINICAL</h2>
+        <p class="dash-header-sub">PASSIVE REGULATION</p>
 
-      <div class="panel warn">
-        <h3 class="sub">SECURITY WARNING: READ BEFORE PROCEEDING</h3>
-        <p>By enabling "Developer Options" and "USB/Wireless Debugging," you are lowering your device's shields.</p>
-        <ol>
-          <li><strong>Sideloading Risk:</strong> Installing APKs from unknown sources can expose your device to malicious code. Only install files obtained directly from the <a href="https://github.com/ASPDesignLabs/NEONFLUX/releases">Official NeonFlux Release Page</a>.</li>
-          <li><strong>Open Ports:</strong> ADB (Android Debug Bridge) allows external computers to send commands to your device. Always disable USB/Wireless Debugging when you are finished installing NeonFlux.</li>
-          <li><strong>Warranty Void:</strong> While rare, improper use of developer tools can destabilize your device. Proceed at your own risk.</li>
-        </ol>
+        <div class="watch-mockup-row">
+          <div class="watch-frame" role="img" aria-label="Clinical deck on the watch: BPM 60, intensity 50 percent, program Pulse, and an Initialize button.">
+            <div class="watch-screen" aria-hidden="true">
+              <p class="wf-deck-label" style="color:var(--pink-bright)">CLINICAL</p>
+              <div class="wf-stats-row">
+                <div><span class="wf-stat-label">BPM</span><span class="wf-stat-value">60</span></div>
+                <div><span class="wf-stat-label">INT</span><span class="wf-stat-value">50%</span></div>
+              </div>
+              <p class="wf-prog">PROG: <strong>PULSE</strong></p>
+              <span class="wf-init">INITIALIZE</span>
+            </div>
+          </div>
+        </div>
+        <p class="watch-caption">
+          While Reactor is about input, Clinical is about output — a precise, rhythmic haptic beat to help regulate breathing or maintain focus.
+        </p>
+
+        <div class="deck-copy">
+          <h3>Configuration</h3>
+          <p>Programmed from the phone — see <a href="#deck-mission">Mission Control</a> — before it ever reaches the watch:</p>
+          <ul class="feature-list">
+            <li><strong>Waveform:</strong> Pulse, Geiger, or Throb.</li>
+            <li><strong>Frequency:</strong> BPM (beats per minute) — 60 BPM is standard for calming.</li>
+            <li><strong>Intensity:</strong> motor strength.</li>
+            <li><strong>Sleep Protocol:</strong> forces the watch screen and sensors off during the beat — for meditation or sleep without light pollution.</li>
+          </ul>
+
+          <h3>The sync event</h3>
+          <ol>
+            <li>Tap <code>UPLOAD CONFIGURATION</code> on the phone.</li>
+            <li>Phone animates <code>SYNCHRONIZING...</code></li>
+            <li>Watch displays a <code>[ FIRMWARE UPDATING ]</code> overlay.</li>
+            <li>The watch loads the new settings and switches to Clinical automatically.</li>
+          </ol>
+
+          <h3>Engagement</h3>
+          <p>
+            Tap <code>INITIALIZE</code> on the watch. A 3-2-1 countdown
+            initiates, then the haptic engine begins — an absolute-time
+            drift correction algorithm keeps it from ever "dragging" or
+            "rushing," staying perfectly on beat for hours.
+          </p>
+        </div>
       </div>
+    </div>
+  </section>
 
-      <h3 class="sub">The Steps</h3>
-      <ol>
-        <li>01 // ACQUIRE THE BRIDGE (ADB)</li>
-        <li>02 // PREPARE THE HOST (PHONE)</li>
-        <li>03 // PREPARE THE NODE (WATCH)</li>
-        <li>04 // INJECT PAYLOAD (INSTALLATION)</li>
-        <li>05 // SYSTEM LOCKDOWN</li>
-      </ol>
-      <p>Each step is spelled out in full — exact commands per OS, where to find Developer Options, what to expect on screen — in the complete guide:</p>
-      <p><a class="btn alt" href="https://github.com/ASPDesignLabs/NEONFLUX/blob/main/INISTALLATION_GUIDE.md">Read the Full Installation Guide &rarr;</a></p>
+  <section id="deck-safety" class="deck">
+    <p class="deck-eyebrow">// Safety &amp; Lockdown</p>
+    <div class="phone-frame">
+      <div class="phone-notch" aria-hidden="true"></div>
+      <div class="phone-screen">
+        <h2 class="dash-header-title" style="font-size:0.95rem;">SAFEGUARD // LOCKDOWN_PROTOCOL</h2>
+
+        <div class="deck-copy">
+          <h3>1. The Curtain (Focus Mode)</h3>
+          <p>
+            If movement stops in Reactor Deck, or if Clinical Mode is
+            active, a "Dark Curtain" fades in — saving OLED screens from
+            burn-in and reducing visual overstimulation. Tap the screen
+            once to lift it (if Sleep Protocol is active, use the Lockdown
+            Gesture instead).
+          </p>
+
+          <h3>2. Lockdown Gesture (Emergency Stop)</h3>
+          <p>
+            If sensation becomes overwhelming or you can't navigate the UI:
+            place two fingers on the screen and hold for 3 seconds.
+            <strong>Hard stop.</strong> Motors kill, audio cuts, and a
+            confirmation buzz indicates the system is safe.
+          </p>
+
+          <h3>3. Safe Mode</h3>
+          <p>To protect battery health, the app will refuse to run if the watch battery is below <strong>15%</strong>.</p>
+
+          <h3>4. Exit Dialog</h3>
+          <p>Swiping "Back" triggers a confirmation before it lets you close the app:</p>
+          <blockquote>
+            TERMINATE?
+            <cite>— the watch app's own exit dialog</cite>
+          </blockquote>
+          <ul class="feature-list">
+            <li><strong>Resume:</strong> return to the flux.</li>
+            <li><strong>Halt:</strong> kill the app and return to the watch face.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="deck-setup" class="deck">
+    <p class="deck-eyebrow">// Initialization</p>
+    <div class="phone-frame">
+      <div class="phone-notch" aria-hidden="true"></div>
+      <div class="phone-screen">
+        <h2 class="dash-header-title" style="font-size:0.95rem;">INITIALIZATION</h2>
+        <p class="dash-header-sub">PHONE, THEN WATCH</p>
+
+        <div class="deck-copy">
+          <h3>1. Phone setup (Mission Control)</h3>
+          <p>Launch <strong>NEONFLUX Mobile</strong>.</p>
+          <ul class="feature-list">
+            <li>The Bio-Metric Visualizer will initially read <code>AWAITING TELEMETRY</code> — see <a href="#deck-mission">Mission Control</a>.</li>
+            <li>Ensure Bluetooth is active. No manual pairing is required; the app uses the Wearable Data Layer to automatically handshake with the nearest node.</li>
+          </ul>
+
+          <h3>2. Watch initialization (the node)</h3>
+          <p>Launch <strong>NEONFLUX Wear</strong>.</p>
+          <ul class="feature-list">
+            <li>You'll be greeted by the <a href="#deck-reactor">Reactor deck</a>.</li>
+            <li>The central ring displays your CORE status — note that this differs from your device battery meter, as the haptic engine draws power differently depending on the active profile.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="deck-install" class="deck">
+    <p class="deck-eyebrow">// Protocol Initiation</p>
+    <div class="phone-frame">
+      <div class="phone-notch" aria-hidden="true"></div>
+      <div class="phone-screen">
+        <h2 class="dash-header-title" style="font-size:0.95rem;">PROTOCOL INITIATION</h2>
+        <p class="dash-header-sub">MANUAL OVERRIDE REQUIRED</p>
+
+        <div class="sys-notice">
+          <strong>Status:</strong> not on the Play Store. To proceed, you
+          must bypass Android's standard security protocols and sideload
+          via ADB.
+        </div>
+
+        <div class="deck-copy">
+          <div class="sys-notice critical">
+            <strong>Security warning — read before proceeding.</strong>
+            <p style="margin:0.5rem 0 0;">By enabling "Developer Options" and "USB/Wireless Debugging," you are lowering your device's shields.</p>
+          </div>
+          <ul class="feature-list">
+            <li><strong>Sideloading risk:</strong> installing APKs from unknown sources can expose your device to malicious code. Only install files obtained directly from the <a href="https://github.com/ASPDesignLabs/NEONFLUX/releases">official NeonFlux release page</a>.</li>
+            <li><strong>Open ports:</strong> ADB (Android Debug Bridge) allows external computers to send commands to your device. Always disable USB/Wireless Debugging when you're finished installing NeonFlux.</li>
+            <li><strong>Warranty void:</strong> while rare, improper use of developer tools can destabilize your device. Proceed at your own risk.</li>
+          </ul>
+
+          <h3>The steps</h3>
+          <ul class="step-list">
+            <li>01 // Acquire the bridge (ADB)</li>
+            <li>02 // Prepare the host (phone)</li>
+            <li>03 // Prepare the node (watch)</li>
+            <li>04 // Inject payload (installation)</li>
+            <li>05 // System lockdown</li>
+          </ul>
+          <p>Each step is spelled out in full — exact commands per OS, where to find Developer Options, what to expect on screen — in the complete guide.</p>
+
+          <div class="about-links">
+            <a class="btn cut-hero" href="https://github.com/ASPDesignLabs/NEONFLUX/blob/main/INISTALLATION_GUIDE.md">Read the Full Installation Guide</a>
+            <a class="btn btn-ghost cut-hero" href="https://github.com/ASPDesignLabs/NEONFLUX/releases">View Releases</a>
+            <a class="btn btn-ghost cut-hero" href="https://github.com/ASPDesignLabs/NEONFLUX">Source on GitHub</a>
+            <a class="btn btn-ghost cut-hero" href="https://github.com/ASPDesignLabs/NEONFLUX/blob/main/LICENSE">GPL-3.0 License</a>
+          </div>
+          <p class="deck-disclaimer">NeonFlux is free software, licensed GPL-3.0. No warranty — an experimental, actively-developed personal project. Use responsibly.</p>
+        </div>
+      </div>
     </div>
   </section>
 
 </main>
 
-<dialog class="shot-dialog" id="shotDialog">
-  <button type="button" class="shot-dialog-close" data-shot-close aria-label="Close screenshot preview">&#10005;</button>
-  <div class="shot-stage" id="shotStage">
-    <div class="shot-stage-placeholder" id="shotPlaceholder" hidden><span id="shotPlaceholderText">Screenshot coming soon</span></div>
-    <img id="shotImage" class="shot-image" alt="" draggable="false" hidden>
-  </div>
-  <div class="shot-controls">
-    <button type="button" data-shot-zoom-out aria-label="Zoom out">&minus;</button>
-    <button type="button" data-shot-zoom-reset aria-label="Reset zoom">1:1</button>
-    <button type="button" data-shot-zoom-in aria-label="Zoom in">+</button>
-  </div>
-  <p class="shot-hint">Double-click, pinch, or scroll to zoom &middot; drag or arrow keys to pan while zoomed &middot; Esc to close</p>
-</dialog>
-
-<footer id="license">
-  <div class="footer-links">
-    <a href="https://github.com/ASPDesignLabs/NEONFLUX">Source</a>
-    <a href="https://github.com/ASPDesignLabs/NEONFLUX/releases">Releases</a>
-    <a href="https://github.com/ASPDesignLabs/NEONFLUX/blob/main/LICENSE">License (GPL-3.0)</a>
-  </div>
-  <p>NeonFlux is licensed under the GNU General Public License v3.0.</p>
-</footer>
-
 <script>
-// --- NAV PILLS ---
-var navPills = document.querySelectorAll('details.nav-pill');
-navPills.forEach(function (d) {
-  d.addEventListener('toggle', function () {
-    if (d.open) navPills.forEach(function (o) { if (o !== d) o.open = false; });
-  });
-});
-document.addEventListener('click', function (e) {
-  navPills.forEach(function (d) { if (d.open && !d.contains(e.target)) d.open = false; });
-});
-document.addEventListener('keydown', function (e) {
-  if (e.key !== 'Escape') return;
-  navPills.forEach(function (d) {
-    if (d.open) { d.open = false; var s = d.querySelector('summary'); if (s) s.focus(); }
-  });
-});
-document.querySelectorAll('.nav-dropdown a').forEach(function (a) {
-  a.addEventListener('click', function () {
-    var href = a.getAttribute('href');
-    if (href && href.charAt(0) === '#') expandSectionById(href.slice(1));
-    navPills.forEach(function (d) { d.open = false; });
-  });
-});
-
-// --- ACCORDION ---
-function setExpanded(btn, expanded) {
-  btn.setAttribute('aria-expanded', String(expanded));
-  var panel = document.getElementById(btn.getAttribute('aria-controls'));
-  if (panel) panel.hidden = !expanded;
-}
-document.querySelectorAll('.accordion-toggle').forEach(function (btn) {
-  btn.addEventListener('click', function () {
-    setExpanded(btn, btn.getAttribute('aria-expanded') !== 'true');
-  });
-});
-function expandSectionById(id) {
-  var el = document.getElementById(id);
-  if (!el) return;
-  var btn = el.querySelector('.accordion-toggle');
-  if (btn && btn.getAttribute('aria-expanded') !== 'true') setExpanded(btn, true);
-}
-function expandFromHash() { if (location.hash) expandSectionById(location.hash.slice(1)); }
-expandFromHash();
-window.addEventListener('hashchange', expandFromHash);
-
-// --- SCREENSHOT LIGHTBOX ---
 (function () {
-  var dialog = document.getElementById('shotDialog');
-  var stage = document.getElementById('shotStage');
-  var img = document.getElementById('shotImage');
-  var placeholder = document.getElementById('shotPlaceholder');
-  var placeholderText = document.getElementById('shotPlaceholderText');
-  var lastTrigger = null;
-  var scale = 1, panX = 0, panY = 0;
-  var minScale = 1, maxScale = 4;
-  var dragging = false, dragStartX = 0, dragStartY = 0, panStartX = 0, panStartY = 0;
-  var pointers = {};
-  var pinchStartDist = 0, pinchStartScale = 1;
+  "use strict";
 
-  function applyTransform() {
-    img.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + scale + ')';
+  function updateClock() {
+    var el = document.getElementById('statusClock');
+    if (!el) return;
+    var d = new Date();
+    var h = d.getHours(), m = d.getMinutes();
+    el.textContent = h + ':' + (m < 10 ? '0' : '') + m;
   }
-  function resetZoom() {
-    scale = 1; panX = 0; panY = 0;
-    applyTransform();
-  }
-  function clampPan() {
-    if (scale <= 1) { panX = 0; panY = 0; return; }
-    var maxX = (stage.clientWidth * (scale - 1)) / 2;
-    var maxY = (stage.clientHeight * (scale - 1)) / 2;
-    panX = Math.max(-maxX, Math.min(maxX, panX));
-    panY = Math.max(-maxY, Math.min(maxY, panY));
-  }
-  function setScale(next) {
-    scale = Math.max(minScale, Math.min(maxScale, next));
-    if (scale === 1) { panX = 0; panY = 0; }
-    clampPan();
-    applyTransform();
+  updateClock();
+  setInterval(updateClock, 15000);
+
+  var deckSelect = document.querySelector('details.deck-select');
+  if (deckSelect) {
+    document.addEventListener('click', function (e) {
+      if (deckSelect.open && !deckSelect.contains(e.target)) deckSelect.open = false;
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && deckSelect.open) {
+        deckSelect.open = false;
+        var s = deckSelect.querySelector('summary');
+        if (s) s.focus();
+      }
+    });
   }
 
-  document.querySelectorAll('.shot-thumb').forEach(function (btn) {
-    var src = btn.getAttribute('data-shot-src');
-    if (src) btn.style.backgroundImage = "url('" + src + "')";
-    var label = document.createElement('span');
-    label.className = 'shot-thumb-label';
+  function setExpanded(btn, expanded) {
+    btn.setAttribute('aria-expanded', String(expanded));
+    var panel = document.getElementById(btn.getAttribute('aria-controls'));
+    if (panel) panel.hidden = !expanded;
+    var textEl = btn.querySelector('[data-collapsed]');
+    if (textEl) textEl.textContent = expanded ? textEl.getAttribute('data-expanded') : textEl.getAttribute('data-collapsed');
+  }
+  document.querySelectorAll('.reveal-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      lastTrigger = btn;
-      var name = btn.getAttribute('data-shot-name') || 'Screenshot';
-      resetZoom();
-      img.hidden = true;
-      placeholder.hidden = true;
-      var testImg = new Image();
-      testImg.onload = function () {
-        img.src = src;
-        img.alt = name + ' — full size';
-        img.hidden = false;
-      };
-      testImg.onerror = function () {
-        placeholderText.textContent = name + ' — screenshot coming soon';
-        placeholder.hidden = false;
-      };
-      testImg.src = src;
-      dialog.showModal();
+      setExpanded(btn, btn.getAttribute('aria-expanded') !== 'true');
     });
   });
-
-  document.querySelectorAll('[data-shot-close]').forEach(function (b) {
-    b.addEventListener('click', function () { dialog.close(); });
-  });
-  dialog.addEventListener('click', function (e) {
-    var box = dialog.getBoundingClientRect();
-    var inside = e.clientX >= box.left && e.clientX <= box.right && e.clientY >= box.top && e.clientY <= box.bottom;
-    if (!inside) dialog.close();
-  });
-  dialog.addEventListener('close', function () {
-    if (lastTrigger) lastTrigger.focus();
-  });
-
-  document.querySelector('[data-shot-zoom-in]').addEventListener('click', function () { setScale(scale + 0.5); });
-  document.querySelector('[data-shot-zoom-out]').addEventListener('click', function () { setScale(scale - 0.5); });
-  document.querySelector('[data-shot-zoom-reset]').addEventListener('click', resetZoom);
-
-  stage.addEventListener('dblclick', function () { setScale(scale > 1 ? 1 : 2); });
-  stage.addEventListener('wheel', function (e) {
-    if (img.hidden) return;
-    e.preventDefault();
-    setScale(scale + (e.deltaY < 0 ? 0.3 : -0.3));
-  }, { passive: false });
-
-  stage.addEventListener('keydown', function (e) {
-    if (scale <= 1) return;
-    var step = 24;
-    if (e.key === 'ArrowLeft') { panX += step; clampPan(); applyTransform(); e.preventDefault(); }
-    else if (e.key === 'ArrowRight') { panX -= step; clampPan(); applyTransform(); e.preventDefault(); }
-    else if (e.key === 'ArrowUp') { panY += step; clampPan(); applyTransform(); e.preventDefault(); }
-    else if (e.key === 'ArrowDown') { panY -= step; clampPan(); applyTransform(); e.preventDefault(); }
-  });
-  stage.tabIndex = 0;
-
-  stage.addEventListener('pointerdown', function (e) {
-    if (img.hidden) return;
-    pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
-    var ids = Object.keys(pointers);
-    if (ids.length === 1) {
-      dragging = true;
-      dragStartX = e.clientX; dragStartY = e.clientY;
-      panStartX = panX; panStartY = panY;
-      img.classList.add('grabbing');
-      stage.setPointerCapture(e.pointerId);
-    } else if (ids.length === 2) {
-      dragging = false;
-      var pts = ids.map(function (id) { return pointers[id]; });
-      pinchStartDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-      pinchStartScale = scale;
-    }
-  });
-  stage.addEventListener('pointermove', function (e) {
-    if (!(e.pointerId in pointers)) return;
-    pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
-    var ids = Object.keys(pointers);
-    if (ids.length === 2) {
-      var pts = ids.map(function (id) { return pointers[id]; });
-      var dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-      if (pinchStartDist > 0) setScale(pinchStartScale * (dist / pinchStartDist));
-    } else if (dragging && scale > 1) {
-      panX = panStartX + (e.clientX - dragStartX);
-      panY = panStartY + (e.clientY - dragStartY);
-      clampPan();
-      applyTransform();
-    }
-  });
-  function endPointer(e) {
-    delete pointers[e.pointerId];
-    if (Object.keys(pointers).length < 2) pinchStartDist = 0;
-    if (Object.keys(pointers).length === 0) { dragging = false; img.classList.remove('grabbing'); }
-  }
-  stage.addEventListener('pointerup', endPointer);
-  stage.addEventListener('pointercancel', endPointer);
 })();
 </script>
 </body>
