@@ -171,8 +171,10 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
     
     // NEW: Called by UI "INITIALIZE" button to start EVERYTHING
     fun broadcastStartToPhone(bpm: Int, intensity: Int, profile: Int) {
-        // 1. Calculate future start time for sync (e.g. 500ms from now)
-        val targetTime = System.currentTimeMillis() + 500
+        // Lead time must match the watch UI's 3-2-1 countdown (3x1000ms, see
+        // MainActivity's LaunchedEffect(isClinicalActive)) so the haptic beat
+        // starts as the countdown hits zero instead of ~2.5s before it finishes.
+        val targetTime = System.currentTimeMillis() + 3000
         
         // 2. Start Local Engine (Delayed)
         startClinicalWithDelay(bpm, intensity, profile, targetTime)
