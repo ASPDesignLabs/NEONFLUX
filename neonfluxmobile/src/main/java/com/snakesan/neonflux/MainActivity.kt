@@ -25,6 +25,10 @@ import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Accessibility
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -264,6 +268,23 @@ fun smartContrast(baseColor: Color, isHighContrast: Boolean, isMonochromeActive:
     return if (baseColor.luminance() <= 0.7f) Color.White else baseColor
 }
 
+// Shared header for the always-reachable Accessibility/Appearance panels (and
+// the hidden Design System sheet) - a title plus an obvious close button, so
+// none of them are a dead end the way the old style sheet was.
+@Composable
+fun PanelHeader(title: String, onClose: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(title, color = MaterialTheme.colorScheme.primary, fontSize = 20.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+        IconButton(onClick = onClose) {
+            Icon(Icons.Filled.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
 @Composable
 fun NeonTheme(palette: NeonPalette, content: @Composable () -> Unit) {
     MaterialTheme(
@@ -431,6 +452,11 @@ fun FluxMobileUI(prefs: SharedPreferences) {
     var showStyleSheet by remember { mutableStateOf(false) }
     var titleTapCount by remember { mutableIntStateOf(0) }
     var lastTitleTapTime by remember { mutableLongStateOf(0L) }
+    // Accessibility and Theme used to only be reachable by triple-tapping the
+    // title into the hidden DESIGN SYSTEM sheet. Both now have their own
+    // always-visible header icon and panel - see the header Row below.
+    var showAccessibilityPanel by remember { mutableStateOf(false) }
+    var showThemePanel by remember { mutableStateOf(false) }
 
     var showSequencer by remember { mutableStateOf(false) }
     var intensity by remember { mutableFloatStateOf(prefs.getFloat("intensity", 50f)) }
@@ -882,34 +908,67 @@ fun FluxMobileUI(prefs: SharedPreferences) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // 1. HEADER (DO NOT lock or dim this)
-                Text(
-                    "NEON // FLUX",
-                    color = MaterialTheme.colorScheme.primary,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 4.sp,
-                    modifier = Modifier.pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = {
-                                val now = System.currentTimeMillis()
-                                if (now - lastTitleTapTime > 2000) titleTapCount = 0
-                                lastTitleTapTime = now
-                                titleTapCount++
-                                if (titleTapCount == 3) {
-                                    view.performHapticFeedback(HapticFeedbackConstants.REJECT)
-                                    showStyleSheet = true
-                                    titleTapCount = 0
-                                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column {
+                        Text(
+                            "NEON // FLUX",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 4.sp,
+                            modifier = Modifier.pointerInput(Unit) {
+                                detectTapGestures(
+                                    onTap = {
+                                        val now = System.currentTimeMillis()
+                                        if (now - lastTitleTapTime > 2000) titleTapCount = 0
+                                        lastTitleTapTime = now
+                                        titleTapCount++
+                                        if (titleTapCount == 3) {
+                                            view.performHapticFeedback(HapticFeedbackConstants.REJECT)
+                                            showStyleSheet = true
+                                            titleTapCount = 0
+                                        }
+                                    }
+                                )
                             }
                         )
+                        Text(
+                            "CLINICAL CONTROLLER",
+                            color = smartContrast(MaterialTheme.colorScheme.tertiary, isHighContrast, isMonochromeToggled),
+                            fontSize = scaledSp(12),
+                            letterSpacing = 2.sp
+                        )
                     }
-                )
-                Text(
-                    "CLINICAL CONTROLLER",
-                    color = smartContrast(MaterialTheme.colorScheme.tertiary, isHighContrast, isMonochromeToggled),
-                    fontSize = scaledSp(12),
-                    letterSpacing = 2.sp
-                )
+
+                    // Always-visible, standard-icon entry points - accessibility and
+                    // theme controls used to be reachable only by triple-tapping the
+                    // title into the hidden DESIGN SYSTEM sheet below.
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { showThemePanel = true }) {
+                            Icon(
+                                imageVector = Icons.Filled.Palette,
+                                // Tinted with the active palette itself, so the button
+                                // previews what it controls rather than sitting flat gray.
+                                tint = activePalette.primary,
+                                contentDescription = "Theme and appearance settings"
+                            )
+                        }
+                        IconButton(onClick = { showAccessibilityPanel = true }) {
+                            Icon(
+                                imageVector = Icons.Filled.Accessibility,
+                                // Deliberately NOT themed - this is the standard system
+                                // accessibility glyph, kept recognizable regardless of
+                                // whatever palette or contrast mode is active.
+                                tint = MaterialTheme.colorScheme.primary,
+                                contentDescription = "Accessibility settings"
+                            )
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -1244,9 +1303,9 @@ Spacer(modifier = Modifier.height(16.dp))
                 }
             }
 
-            // --- UI STYLE SHEET SHOWCASE OVERLAY ---
+            // --- ACCESSIBILITY PANEL (always reachable via the header icon) ---
             AnimatedVisibility(
-                visible = showStyleSheet,
+                visible = showAccessibilityPanel,
                 enter = expandVertically(expandFrom = Alignment.Bottom),
                 exit = shrinkVertically(shrinkTowards = Alignment.Bottom),
                 modifier = Modifier.zIndex(100f)
@@ -1258,8 +1317,53 @@ Spacer(modifier = Modifier.height(16.dp))
                         modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("DESIGN SYSTEM", color = MaterialTheme.colorScheme.primary, fontSize = 20.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                        PanelHeader("ACCESSIBILITY") { showAccessibilityPanel = false }
+                        Spacer(modifier = Modifier.height(16.dp))
 
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("SMART HIGH CONTRAST", color = smartContrast(Color.Gray, isHighContrast), fontSize = scaledSp(12))
+                            Switch(
+                                checked = isHighContrast,
+                                onCheckedChange = {
+                                    isHighContrast = it
+                                    prefs.edit().putBoolean("a11y_contrast", it).apply()
+                                    sendA11yToWatch()
+                                },
+                                colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary)
+                            )
+                        }
+
+                        CyberSlider("PHONE FONT SCALE", phoneFontScale * 100, 100f..200f, "%") {
+                            phoneFontScale = it / 100f
+                            prefs.edit().putFloat("a11y_phone_font", phoneFontScale).apply()
+                        }
+
+                        CyberSlider("WATCH FONT SCALE", watchFontScale * 100, 100f..200f, "%") {
+                            watchFontScale = it / 100f
+                            prefs.edit().putFloat("a11y_watch_font", watchFontScale).apply()
+                            sendA11yToWatch()
+                        }
+
+                        Spacer(modifier = Modifier.height(40.dp))
+                    }
+                }
+            } // End of Accessibility Panel
+
+            // --- THEME / APPEARANCE PANEL (always reachable via the header icon) ---
+            AnimatedVisibility(
+                visible = showThemePanel,
+                enter = expandVertically(expandFrom = Alignment.Bottom),
+                exit = shrinkVertically(shrinkTowards = Alignment.Bottom),
+                modifier = Modifier.zIndex(100f)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).systemBarsPadding().clickable(enabled = false) {}
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        PanelHeader("APPEARANCE") { showThemePanel = false }
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // MONOCHROME CONTROLS
@@ -1329,56 +1433,57 @@ Spacer(modifier = Modifier.height(16.dp))
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        var showThemeMenu by remember { mutableStateOf(false) }
+                        // ACTIVE THEME PICKER - shown directly now that the panel itself
+                        // is the deliberate entry point; no extra nested collapse needed.
+                        Column(modifier = Modifier.fillMaxWidth().clip(CutCornerShape(topStart = 12.dp, bottomEnd = 12.dp)).background(Color.DarkGray.copy(0.3f)).border(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha=0.5f), CutCornerShape(topStart = 12.dp, bottomEnd = 12.dp)).padding(16.dp)) {
+                            Text("ACTIVE THEME:", color = Color.Gray, fontSize = 10.sp)
+                            Text(activePalette.name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(12.dp))
 
-                        Column(modifier = Modifier.fillMaxWidth().clip(CutCornerShape(topStart = 12.dp, bottomEnd = 12.dp)).background(Color.DarkGray.copy(0.3f)).border(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha=0.5f), CutCornerShape(topStart = 12.dp, bottomEnd = 12.dp))) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().clickable { showThemeMenu = !showThemeMenu }.padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text("ACTIVE THEME:", color = Color.Gray, fontSize = 10.sp)
-                                    Text(activePalette.name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                }
-                                Text(if (showThemeMenu) "▲" else "▼", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)
-                            }
-
-                            AnimatedVisibility(visible = showThemeMenu) {
-                                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                                    FluxPalettes.forEachIndexed { index, palette ->
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable {
-                                                activePaletteIndex = index
-                                                prefs.edit().putInt("theme_index", index).apply()
-                                                sendVisualThemeToWatch()
-                                                Wearable.getNodeClient(context).connectedNodes.addOnSuccessListener { nodes ->
-                                                    nodes.forEach {
-                                                        Wearable.getMessageClient(context)
-                                                            .sendMessage(it.id, "/flux_theme_sync", byteArrayOf(index.toByte()))
-                                                    }
-                                                }
-                                            },
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            Text(palette.name, color = if (index == activePaletteIndex) MaterialTheme.colorScheme.primary else Color.LightGray, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                            if (index == activePaletteIndex) Text("ACTIVE", color = MaterialTheme.colorScheme.secondary, fontSize = 10.sp)
+                            FluxPalettes.forEachIndexed { index, palette ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable {
+                                        activePaletteIndex = index
+                                        prefs.edit().putInt("theme_index", index).apply()
+                                        sendVisualThemeToWatch()
+                                        Wearable.getNodeClient(context).connectedNodes.addOnSuccessListener { nodes ->
+                                            nodes.forEach {
+                                                Wearable.getMessageClient(context)
+                                                    .sendMessage(it.id, "/flux_theme_sync", byteArrayOf(index.toByte()))
+                                            }
                                         }
-                                    }
-                                    Spacer(modifier = Modifier.height(16.dp))
-
-                                    Button(
-                                        onClick = { showStyleSheet = false },
-                                        modifier = Modifier.fillMaxWidth().height(45.dp),
-                                        shape = CutCornerShape(topStart = 8.dp, bottomEnd = 8.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                                    ) {
-                                        Text("EXIT DESIGN SYSTEM", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                    },
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(palette.name, color = if (index == activePaletteIndex) MaterialTheme.colorScheme.primary else Color.LightGray, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                    if (index == activePaletteIndex) Text("ACTIVE", color = MaterialTheme.colorScheme.secondary, fontSize = 10.sp)
                                 }
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(40.dp))
+                    }
+                }
+            } // End of Theme Panel
+
+            // --- UI STYLE SHEET SHOWCASE OVERLAY (hidden dev/visual-fx sandbox,
+            // still reached by triple-tapping the title - Theme/Monochrome/
+            // Accessibility moved out above into their own persistent, always
+            // discoverable entry points) ---
+            AnimatedVisibility(
+                visible = showStyleSheet,
+                enter = expandVertically(expandFrom = Alignment.Bottom),
+                exit = shrinkVertically(shrinkTowards = Alignment.Bottom),
+                modifier = Modifier.zIndex(100f)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).systemBarsPadding().clickable(enabled = false) {}
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        PanelHeader("DESIGN SYSTEM") { showStyleSheet = false }
 
                         Spacer(modifier = Modifier.height(16.dp))
 
@@ -1501,35 +1606,6 @@ Spacer(modifier = Modifier.height(16.dp))
                                     Spacer(modifier = Modifier.height(8.dp))
                                 }
                             }
-                        }
-
-                        // Remaining Accessibility / Style sheet controls remain exactly the same formatting...
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Text("ACCESSIBILITY", color = MaterialTheme.colorScheme.primary, fontSize = scaledSp(12), modifier = Modifier.align(Alignment.Start))
-                        Divider(color = Color.DarkGray, modifier = Modifier.padding(vertical = 8.dp))
-
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text("SMART HIGH CONTRAST", color = smartContrast(Color.Gray, isHighContrast), fontSize = scaledSp(12))
-                            Switch(
-                                checked = isHighContrast,
-                                onCheckedChange = {
-                                    isHighContrast = it
-                                    prefs.edit().putBoolean("a11y_contrast", it).apply()
-                                    sendA11yToWatch()
-                                },
-                                colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary)
-                            )
-                        }
-
-                        CyberSlider("PHONE FONT SCALE", phoneFontScale * 100, 100f..200f, "%") {
-                            phoneFontScale = it / 100f
-                            prefs.edit().putFloat("a11y_phone_font", phoneFontScale).apply()
-                        }
-
-                        CyberSlider("WATCH FONT SCALE", watchFontScale * 100, 100f..200f, "%") {
-                            watchFontScale = it / 100f
-                            prefs.edit().putFloat("a11y_watch_font", watchFontScale).apply()
-                            sendA11yToWatch()
                         }
 
                         Spacer(modifier = Modifier.height(40.dp))
