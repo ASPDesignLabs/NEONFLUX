@@ -244,27 +244,31 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
         updateState("STANDBY")
     }
 
-    fun haltService() {
+    fun haltService(reason: String? = null) {
         isRunning = false
         clinicalJob?.cancel()
         synth.stop()
-        updateState("STANDBY")
+        updateState("STANDBY", reason)
         if (wakeLock?.isHeld == true) wakeLock?.release()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 
     // --- STATE PUBLISHER ---
-    private fun updateState(modeText: String) {
+    // reason is an optional extra cause tag (e.g. "LOW_BATTERY") for Overseer's
+    // UPDATE_STATUS bridge - source_app/flux_mode/is_active stay untouched so the
+    // existing contract doesn't change for anyone not looking at halt_reason.
+    private fun updateState(modeText: String, reason: String? = null) {
         if (currentMode == modeText) return
         currentMode = modeText
-        
+
         // 1. Broadcast to Overseer (Legacy Bridge)
         val overseerIntent = Intent("com.snakesan.overseer.UPDATE_STATUS")
         overseerIntent.setPackage("com.snakesan.overseer")
         overseerIntent.putExtra("source_app", "FLUX")
         overseerIntent.putExtra("flux_mode", modeText)
         overseerIntent.putExtra("is_active", isRunning)
+        if (reason != null) overseerIntent.putExtra("halt_reason", reason)
         sendBroadcast(overseerIntent)
 
         // 2. Broadcast to Local UI
