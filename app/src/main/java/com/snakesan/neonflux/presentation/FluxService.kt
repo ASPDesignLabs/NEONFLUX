@@ -34,6 +34,21 @@ object EmergencyTexture {
     }
 }
 
+// STEADY's hardware-looped on/off timing - see startEmergency() in
+// FluxService. An LRA (resonant) haptic motor can't be driven as one long
+// hold the way an ERM's spinning mass can: LRA drive electronics are tuned
+// to re-excite the actuator's resonant frequency in short bursts, and a
+// multi-minute single effect call is exactly the shape of input that
+// silently decays or gets dropped by the HAL/driver - which is almost
+// certainly why the original single-createOneShot() STEADY produced little
+// to no felt vibration. 15ms on / 5ms off (repeat=0, so this one call loops
+// in hardware, no coroutine needed) keeps re-triggering the resonant drive
+// well above the skin's flicker-fusion threshold (~20-30Hz for vibrotactile
+// stimuli), so it reads as one smooth continuous buzz rather than discrete
+// taps, while never asking the driver to sustain a single long hold.
+private const val EMERGENCY_STEADY_ON_MS = 15L
+private const val EMERGENCY_STEADY_OFF_MS = 5L
+
 // PULSE's hardware-looped on/off timing - see startEmergency() in FluxService.
 private const val EMERGENCY_PULSE_ON_MS = 90L
 private const val EMERGENCY_PULSE_OFF_MS = 90L
@@ -496,9 +511,9 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
         val hasAmp = vibrator.hasAmplitudeControl()
         val amp = (intensityPct / 100f * 255).toInt().coerceAtLeast(10).coerceAtMost(255)
         val onAmp = if (hasAmp) amp else VibrationEffect.DEFAULT_AMPLITUDE
-        // createOneShot()/createWaveform() throw for a duration/timing <= 0 -
-        // floor it defensively so a malformed/unexpected durationMin can
-        // never silently kill the whole call.
+        // How long the auto-halt timer below waits before stopping the loop -
+        // floored so a malformed/unexpected durationMin can never schedule a
+        // near-instant halt.
         val vibrateMs = (if (durationMin >= 0) durationMin * 60_000L else EMERGENCY_MAX_DURATION_MS).coerceAtLeast(1000L)
 
         // Every other vibrate() call in this file branches on hasAmplitudeControl()
@@ -507,19 +522,24 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
         // hardware without amplitude control (an amplitude-scaled effect can
         // silently no-op there instead of falling back). DEFAULT_AMPLITUDE still
         // gives real, felt vibration at the motor's default strength.
+        // Both textures are a single hardware-looped on/off waveform (repeat = 0
+        // loops the whole array from the start) - one vibrate() call runs for as
+        // long as it's not cancelled, no coroutine re-issuing it needed, unlike
+        // Reactor/Clinical's loops (which exist for movement/BPM timing this
+        // doesn't have). Neither uses a single long createOneShot() hold - see
+        // EMERGENCY_STEADY_ON_MS above for why that doesn't work on an LRA.
         val effect = when (texture) {
-            // PULSE: a single hardware-looped on/off waveform (repeat = loop the
-            // whole array from index 0) - one vibrate() call runs for as long as
-            // it's not cancelled, no coroutine re-issuing it needed, unlike
-            // Reactor/Clinical's loops (which exist for movement/BPM timing this
-            // doesn't have).
             EmergencyTexture.PULSE -> VibrationEffect.createWaveform(
                 longArrayOf(EMERGENCY_PULSE_ON_MS, EMERGENCY_PULSE_OFF_MS),
                 intArrayOf(onAmp, 0),
                 0
             )
-            // STEADY (default/unrecognized): today's unbroken sustain.
-            else -> VibrationEffect.createOneShot(vibrateMs, onAmp)
+            // STEADY (default/unrecognized).
+            else -> VibrationEffect.createWaveform(
+                longArrayOf(EMERGENCY_STEADY_ON_MS, EMERGENCY_STEADY_OFF_MS),
+                intArrayOf(onAmp, 0),
+                0
+            )
         }
         vibrator.vibrate(effect)
 
