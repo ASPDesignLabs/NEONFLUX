@@ -50,10 +50,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -65,14 +68,46 @@ import kotlin.math.*
 enum class FluxState { MONITOR, ACTIVE }
 enum class Deck { REACTOR, CLINICAL }
 
-val FluxCyan = Color(0xFF00F3FF)
-val FluxPink = Color(0xFFFF0055)
-val FluxDark = Color(0xFF121212)
-val FluxBg = Color(0xFF050505)
-
 // Docs promise the app refuses to run below this and closes if it drops below
 // this mid-session - see README "SAFE MODE".
 const val SAFE_MODE_BATTERY_THRESHOLD = 15
+
+// --- THEME/A11Y STATE ---
+// Backs FluxCyan/Pink/Dark/Bg/TextMain/TextDim below, so every existing color
+// reference in this file stays theme-aware without threading a value through
+// every composable. Written from MainActivity.onCreate (persisted prefs) and
+// from the /flux_a11y_sync + /flux_visual_theme broadcast receivers in
+// NeonFluxWatchUI - never read directly, only through the computed properties.
+object WatchThemeState {
+    var primaryRaw by mutableStateOf(Color(0xFF00F3FF))
+    var secondaryRaw by mutableStateOf(Color(0xFFFF0055))
+    var panelRaw by mutableStateOf(Color(0xFF121212))
+    var bgRaw by mutableStateOf(Color(0xFF050505))
+    var textMainRaw by mutableStateOf(Color.White)
+    var textDimRaw by mutableStateOf(Color.Gray)
+    var isMonochrome by mutableStateOf(false)
+    var isHighContrast by mutableStateOf(false)
+    var fontScale by mutableFloatStateOf(1.0f)
+}
+
+// Mirrors the phone's smartContrast() (MainActivity.kt in neonfluxmobile) -
+// boosts any color that isn't already bright to pure white, so accessory
+// colors on a dark background stay readable in High Contrast mode without
+// needing a whole separate palette.
+private fun watchSmartContrast(base: Color, highContrast: Boolean, monochrome: Boolean): Color {
+    if (monochrome || !highContrast) return base
+    return if (base.luminance() <= 0.7f) Color.White else base
+}
+
+val FluxCyan: Color get() = watchSmartContrast(WatchThemeState.primaryRaw, WatchThemeState.isHighContrast, WatchThemeState.isMonochrome)
+val FluxPink: Color get() = watchSmartContrast(WatchThemeState.secondaryRaw, WatchThemeState.isHighContrast, WatchThemeState.isMonochrome)
+val FluxDark: Color get() = WatchThemeState.panelRaw
+val FluxBg: Color get() = WatchThemeState.bgRaw
+val FluxTextMain: Color get() = watchSmartContrast(WatchThemeState.textMainRaw, WatchThemeState.isHighContrast, WatchThemeState.isMonochrome)
+val FluxTextDim: Color get() = watchSmartContrast(WatchThemeState.textDimRaw, WatchThemeState.isHighContrast, WatchThemeState.isMonochrome)
+
+// Font-scale-aware sp, mirroring the phone's scaledSp().
+val Number.wsp: TextUnit get() = (this.toFloat() * WatchThemeState.fontScale).sp
 
 // --- HELPERS ---
 fun vibrateAck(context: Context) {
@@ -138,6 +173,20 @@ class MainActivity : ComponentActivity() {
         clinicalSleep = prefs.getBoolean("sleep", false)
         reactorProfile = prefs.getInt("reactor_profile", 0)
 
+        // Restore a11y/theme (see /flux_a11y_sync, /flux_visual_theme in
+        // FluxService) - defaults match this file's original hardcoded colors
+        // exactly, so anyone who has never touched the phone's theme/a11y
+        // controls sees no change.
+        WatchThemeState.isHighContrast = prefs.getBoolean("a11y_contrast", false)
+        WatchThemeState.fontScale = prefs.getFloat("a11y_font_scale", 1.0f)
+        WatchThemeState.isMonochrome = prefs.getBoolean("theme_mono", false)
+        WatchThemeState.primaryRaw = Color(prefs.getInt("theme_primary", Color(0xFF00F3FF).toArgb()))
+        WatchThemeState.secondaryRaw = Color(prefs.getInt("theme_secondary", Color(0xFFFF0055).toArgb()))
+        WatchThemeState.panelRaw = Color(prefs.getInt("theme_l1", Color(0xFF121212).toArgb()))
+        WatchThemeState.bgRaw = Color(prefs.getInt("theme_bg", Color(0xFF050505).toArgb()))
+        WatchThemeState.textMainRaw = Color(prefs.getInt("theme_text_main", Color.White.toArgb()))
+        WatchThemeState.textDimRaw = Color(prefs.getInt("theme_l2", Color.Gray.toArgb()))
+
         setContent { MaterialTheme { NeonFluxWatchUI(this) } }
     }
 
@@ -202,15 +251,15 @@ fun FluxButton(text: String, onClick: () -> Unit, color: Color = FluxCyan, modif
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = text, color = color, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp))
+        Text(text = text, color = color, fontSize = 10.wsp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp))
     }
 }
 
 @Composable
-fun FluxLabel(title: String, value: String, color: Color = Color.White) {
+fun FluxLabel(title: String, value: String, color: Color = FluxTextMain) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(title, color = Color.Gray, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-        Text(value, color = color, fontSize = 16.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+        Text(title, color = FluxTextDim, fontSize = 8.wsp, fontWeight = FontWeight.Bold)
+        Text(value, color = color, fontSize = 16.wsp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
     }
 }
 
@@ -226,7 +275,7 @@ fun RunningIndicator(color: Color, modifier: Modifier = Modifier) {
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(6.dp).clip(CircleShape).background(color.copy(alpha = pulseAlpha)))
         Spacer(Modifier.width(4.dp))
-        Text("RUNNING", color = color.copy(alpha = pulseAlpha), fontSize = 8.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+        Text("RUNNING", color = color.copy(alpha = pulseAlpha), fontSize = 8.wsp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
     }
 }
 
@@ -234,13 +283,13 @@ fun RunningIndicator(color: Color, modifier: Modifier = Modifier) {
 fun SafeModeScreen(batteryLevel: Int) {
     Box(Modifier.fillMaxSize().background(FluxBg), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("SAFE MODE", color = FluxPink, fontSize = 14.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+            Text("SAFE MODE", color = FluxPink, fontSize = 14.wsp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
             Spacer(Modifier.height(10.dp))
-            Text("CORE $batteryLevel%", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("CORE $batteryLevel%", color = FluxTextMain, fontSize = 22.wsp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
             Text(
                 "CHARGE ABOVE $SAFE_MODE_BATTERY_THRESHOLD% TO CONTINUE",
-                color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp
+                color = FluxTextDim, fontSize = 9.wsp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp
             )
         }
     }
@@ -323,6 +372,51 @@ fun NeonFluxWatchUI(activity: MainActivity) {
             context.registerReceiver(engageReceiver, filter)
         }
         onDispose { try { context.unregisterReceiver(engageReceiver) } catch (e: Exception) {} }
+    }
+
+    // --- REMOTE A11Y / THEME RECEIVERS ---
+    // FluxService already persists these to SharedPreferences; this just keeps
+    // WatchThemeState (and therefore every themed color/text size on screen)
+    // live-updated while the app is open, without needing a restart to apply.
+    DisposableEffect(Unit) {
+        val a11yReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == "com.snakesan.neonflux.REMOTE_A11Y") {
+                    WatchThemeState.isHighContrast = intent.getBooleanExtra("high_contrast", WatchThemeState.isHighContrast)
+                    WatchThemeState.fontScale = intent.getFloatExtra("font_scale", WatchThemeState.fontScale)
+                }
+            }
+        }
+        val filter = IntentFilter("com.snakesan.neonflux.REMOTE_A11Y")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(a11yReceiver, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            context.registerReceiver(a11yReceiver, filter)
+        }
+        onDispose { try { context.unregisterReceiver(a11yReceiver) } catch (e: Exception) {} }
+    }
+
+    DisposableEffect(Unit) {
+        val themeReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == "com.snakesan.neonflux.REMOTE_THEME") {
+                    WatchThemeState.isMonochrome = intent.getBooleanExtra("mono", WatchThemeState.isMonochrome)
+                    WatchThemeState.primaryRaw = Color(intent.getIntExtra("primary", WatchThemeState.primaryRaw.toArgb()))
+                    WatchThemeState.secondaryRaw = Color(intent.getIntExtra("secondary", WatchThemeState.secondaryRaw.toArgb()))
+                    WatchThemeState.panelRaw = Color(intent.getIntExtra("l1", WatchThemeState.panelRaw.toArgb()))
+                    WatchThemeState.textDimRaw = Color(intent.getIntExtra("l2", WatchThemeState.textDimRaw.toArgb()))
+                    WatchThemeState.textMainRaw = Color(intent.getIntExtra("text_main", WatchThemeState.textMainRaw.toArgb()))
+                    WatchThemeState.bgRaw = Color(intent.getIntExtra("bg", WatchThemeState.bgRaw.toArgb()))
+                }
+            }
+        }
+        val filter = IntentFilter("com.snakesan.neonflux.REMOTE_THEME")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(themeReceiver, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            context.registerReceiver(themeReceiver, filter)
+        }
+        onDispose { try { context.unregisterReceiver(themeReceiver) } catch (e: Exception) {} }
     }
 
     // --- KILL SWITCH ---
@@ -513,9 +607,9 @@ fun NeonFluxWatchUI(activity: MainActivity) {
             }
             Box(Modifier.fillMaxSize().zIndex(500f).background(FluxBg), Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("[ FIRMWARE UPDATING ]", color = FluxPink, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Text("[ FIRMWARE UPDATING ]", color = FluxPink, fontSize = 10.wsp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                     Spacer(Modifier.height(8.dp))
-                    Text("RX: CONFIG_PACKET_01", color = Color.Gray, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                    Text("RX: CONFIG_PACKET_01", color = FluxTextDim, fontSize = 8.wsp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(15.dp))
                     Box(Modifier.width(120.dp).height(8.dp).border(1.dp, FluxCyan).background(FluxDark)) {
                         Box(Modifier.fillMaxHeight().fillMaxWidth(syncProgress.value).background(FluxCyan))
@@ -528,7 +622,7 @@ fun NeonFluxWatchUI(activity: MainActivity) {
             Text(
                 text = if (currentDeck == Deck.REACTOR) "REACTOR" else "CLINICAL",
                 color = if (currentDeck == Deck.REACTOR) FluxCyan else FluxPink,
-                fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp,
+                fontSize = 10.wsp, fontWeight = FontWeight.Black, letterSpacing = 2.sp,
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = 20.dp)
             )
             if (isSessionRunning) {
@@ -545,13 +639,13 @@ fun NeonFluxWatchUI(activity: MainActivity) {
                         val batCol = if(batteryLevel < 20) FluxPink else if(batteryLevel < 50) Color(0xFFFF9900) else FluxCyan
                         CircularProgressIndicator(progress = batteryLevel / 100f, indicatorColor = batCol, strokeWidth = 6.dp, modifier = Modifier.fillMaxSize())
                         val fluxVis = (visualMotionMag / 10f).coerceIn(0f, 1f)
-                        if (fluxVis > 0.1f) CircularProgressIndicator(progress = fluxVis, indicatorColor = Color.White.copy(alpha=0.5f), strokeWidth = 2.dp, modifier = Modifier.fillMaxSize().padding(8.dp))
+                        if (fluxVis > 0.1f) CircularProgressIndicator(progress = fluxVis, indicatorColor = FluxTextMain.copy(alpha=0.5f), strokeWidth = 2.dp, modifier = Modifier.fillMaxSize().padding(8.dp))
 
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("CORE", color = Color.Gray, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                            Text("$batteryLevel%", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                            Text("CORE", color = FluxTextDim, fontSize = 8.wsp, fontWeight = FontWeight.Bold)
+                            Text("$batteryLevel%", color = FluxTextMain, fontSize = 24.wsp, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(2.dp))
-                            Text(timeRemaining, color = FluxCyan, fontSize = 10.sp)
+                            Text(timeRemaining, color = FluxCyan, fontSize = 10.wsp)
                         }
                     }
                     Spacer(Modifier.height(12.dp))
@@ -572,10 +666,10 @@ fun NeonFluxWatchUI(activity: MainActivity) {
                     }
                     Spacer(Modifier.height(10.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("PROG: ", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        Text(pName, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text("PROG: ", color = FluxTextDim, fontSize = 10.wsp, fontWeight = FontWeight.Bold)
+                        Text(pName, color = FluxTextMain, fontSize = 10.wsp, fontWeight = FontWeight.Bold)
                     }
-                    if (activity.clinicalSleep) Text("[SLEEP MODE ACTIVE]", color = FluxPink, fontSize = 8.sp, modifier = Modifier.padding(top = 2.dp))
+                    if (activity.clinicalSleep) Text("[SLEEP MODE ACTIVE]", color = FluxPink, fontSize = 8.wsp, modifier = Modifier.padding(top = 2.dp))
                     else Spacer(Modifier.height(14.dp))
                     Spacer(Modifier.height(10.dp))
                     FluxButton(text = "INITIALIZE", onClick = { 
@@ -594,18 +688,18 @@ fun NeonFluxWatchUI(activity: MainActivity) {
         if (profileNameToast.isNotEmpty()) {
             Box(Modifier.fillMaxSize().zIndex(400f), Alignment.Center) {
                 Box(Modifier.background(FluxDark.copy(alpha=0.9f), CutCornerShape(10.dp)).border(1.dp, FluxCyan, CutCornerShape(10.dp)).padding(horizontal = 20.dp, vertical = 10.dp)) {
-                    Text(profileNameToast, color = FluxCyan, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(profileNameToast, color = FluxCyan, fontWeight = FontWeight.Bold, fontSize = 14.wsp)
                 }
             }
         }
         
         if (curtainAlpha > 0f) Box(Modifier.fillMaxSize().zIndex(100f).background(FluxBg.copy(alpha=curtainAlpha)))
-        if (countdownValue > 0) Box(Modifier.fillMaxSize().zIndex(200f).background(FluxBg), Alignment.Center) { Text("$countdownValue", fontSize = 60.sp, fontWeight = FontWeight.Black, color = FluxPink) }
+        if (countdownValue > 0) Box(Modifier.fillMaxSize().zIndex(200f).background(FluxBg), Alignment.Center) { Text("$countdownValue", fontSize = 60.wsp, fontWeight = FontWeight.Black, color = FluxPink) }
         
         if (showExitDialog) {
             Box(Modifier.fillMaxSize().zIndex(300f).background(FluxBg.copy(0.95f)), Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("TERMINATE?", color = FluxCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("TERMINATE?", color = FluxCyan, fontSize = 12.wsp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(15.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         FluxButton("RESUME", { showExitDialog = false }, FluxCyan, Modifier.width(70.dp))

@@ -194,6 +194,89 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
 
             } catch (e: Exception) { Log.e("FluxService", "Prepare Error", e) }
         }
+
+        // CASE 5: ACCESSIBILITY SYNC (High Contrast + Font Scale). Wire format
+        // from the phone's sendA11yToWatch(): [highContrast:1][fontScale:4].
+        else if (event.path == "/flux_a11y_sync") {
+            try {
+                val buffer = ByteBuffer.wrap(event.data)
+                val highContrast = buffer.get().toInt() == 1
+                val fontScale = buffer.getFloat()
+
+                getSharedPreferences("FluxWatchConfig", Context.MODE_PRIVATE).edit().apply {
+                    putBoolean("a11y_contrast", highContrast)
+                    putFloat("a11y_font_scale", fontScale)
+                    apply()
+                }
+
+                val intent = Intent("com.snakesan.neonflux.REMOTE_A11Y")
+                intent.putExtra("high_contrast", highContrast)
+                intent.putExtra("font_scale", fontScale)
+                intent.setPackage(packageName)
+                sendBroadcast(intent)
+            } catch (e: Exception) { Log.e("FluxService", "A11y Sync Error", e) }
+        }
+
+        // CASE 6: VISUAL THEME SYNC. Wire format from the phone's
+        // sendVisualThemeToWatch(): [version:1][mono:1][monoHdr:1][primary:4]
+        // [secondary:4][l1:4][l2:4][textMain:4][bg:4] as ARGB ints (27 bytes).
+        else if (event.path == "/flux_visual_theme") {
+            try {
+                val buffer = ByteBuffer.wrap(event.data)
+                buffer.get() // version - unused, reserved for future wire changes
+                val isMonochrome = buffer.get().toInt() == 1
+                buffer.get() // monoHdr - not applicable on the watch's simpler UI
+                val primary = buffer.getInt()
+                val secondary = buffer.getInt()
+                val l1 = buffer.getInt()
+                val l2 = buffer.getInt()
+                val textMain = buffer.getInt()
+                val bg = buffer.getInt()
+
+                getSharedPreferences("FluxWatchConfig", Context.MODE_PRIVATE).edit().apply {
+                    putBoolean("theme_mono", isMonochrome)
+                    putInt("theme_primary", primary)
+                    putInt("theme_secondary", secondary)
+                    putInt("theme_l1", l1)
+                    putInt("theme_l2", l2)
+                    putInt("theme_text_main", textMain)
+                    putInt("theme_bg", bg)
+                    apply()
+                }
+
+                val intent = Intent("com.snakesan.neonflux.REMOTE_THEME")
+                intent.putExtra("mono", isMonochrome)
+                intent.putExtra("primary", primary)
+                intent.putExtra("secondary", secondary)
+                intent.putExtra("l1", l1)
+                intent.putExtra("l2", l2)
+                intent.putExtra("text_main", textMain)
+                intent.putExtra("bg", bg)
+                intent.setPackage(packageName)
+                sendBroadcast(intent)
+            } catch (e: Exception) { Log.e("FluxService", "Theme Sync Error", e) }
+        }
+
+        // CASE 7: CUSTOM PROFILE METADATA. Wire format from the phone's
+        // sendCustomProfileMetadataToWatch(): [bank:1][nameLen:1][name bytes].
+        // The watch doesn't run the custom sequencer (profile 3) itself, so
+        // this just persists the name rather than losing it silently.
+        else if (event.path == "/custom_profile_meta") {
+            try {
+                val buffer = ByteBuffer.wrap(event.data)
+                val bank = buffer.get().toInt()
+                val nameLen = buffer.get().toInt() and 0xFF
+                val nameBytes = ByteArray(nameLen)
+                buffer.get(nameBytes)
+                val name = nameBytes.decodeToString()
+
+                getSharedPreferences("FluxWatchConfig", Context.MODE_PRIVATE).edit().apply {
+                    putInt("custom_bank", bank)
+                    putString("custom_name", name)
+                    apply()
+                }
+            } catch (e: Exception) { Log.e("FluxService", "Custom Profile Meta Error", e) }
+        }
     }
 
     private fun isBatterySafe(): Boolean {
