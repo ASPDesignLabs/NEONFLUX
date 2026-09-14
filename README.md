@@ -32,6 +32,23 @@ Launch **NEONFLUX Wear**.
 
 ---
 
+## // ACCESSIBILITY & APPEARANCE
+
+Two icons sit in the phone app's header at all times, next to the `NEON // FLUX` title — reachable the moment you open Mission Control, not buried in a settings menu.
+
+### **1. Accessibility**
+Tap the accessibility icon (the standard system glyph) to open:
+*   **Smart High Contrast:** Boosts any accent color that isn't already bright enough against the background, instead of swapping in a whole separate palette.
+*   **Phone Font Scale:** Resizes text in the phone app.
+*   **Watch Font Scale:** Resizes text on the watch — synced live over the Wearable Data Layer.
+
+### **2. Appearance**
+Tap the palette icon (tinted with your current theme) to open:
+*   **Active Theme:** Choose from `DEFAULT CYBER`, `TOXIC VENOM`, `SOLAR FLARE`, or `GHOST SHELL`. Applies to both phone and watch.
+*   **Monochrome Protocol:** A single-hue display mode, with its own HDR intensity and base-color controls.
+
+---
+
 ## // DECK 01: REACTOR [ACTIVE GROUNDING]
 
 The **Reactor Deck** is the default state. It turns movement into data you can feel.

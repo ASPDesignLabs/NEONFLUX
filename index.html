@@ -166,6 +166,44 @@ details.deck-select[open] > summary .car { transform: rotate(180deg); }
 .dash-header-title { font-family: var(--font-display); color: var(--cyan); font-weight: 800; letter-spacing: 0.15em; font-size: 1.1rem; margin: 0; text-shadow: 0 0 12px rgba(0,243,255,0.35); }
 .dash-header-sub { font-family: var(--font-display); color: var(--text-faint); font-size: 0.6rem; letter-spacing: 0.15em; margin: 0.2rem 0 0.9rem; }
 
+/* Header icon row: title left, Accessibility + Theme icon buttons right --
+   these sit in the phone header's "DO NOT lock or dim this" zone, so they're
+   reachable at all times, not just on the Mission Control screen. */
+.dash-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; text-align: left; }
+.dash-header-icons { display: flex; gap: 0.35rem; flex-shrink: 0; padding-top: 0.2rem; }
+.hdr-icon-btn { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+.hdr-icon { width: 18px; height: 18px; }
+.hdr-icon.is-palette { fill: var(--cyan); } /* mirrors the real button's activePalette.primary tint */
+.hdr-icon.is-palette .hole { fill: var(--void); }
+.hdr-icon.is-a11y { fill: var(--cyan); } /* MaterialTheme.colorScheme.primary -- deliberately not palette-tinted, see README */
+
+/* Standard Material3 Switch (High Contrast, HDR Intensity) -- a pill track
+   with a sliding circular thumb, distinct from the custom cut-corner toggle
+   box Sleep Protocol uses above (that one really is a different component
+   in source, not the same control restyled). */
+.ps-switch { position: relative; width: 38px; height: 20px; border-radius: 10px; background: var(--graphite-2); border: 1px solid #444; flex-shrink: 0; }
+.ps-switch-thumb { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--text-dim); }
+.ps-switch.is-on { background: rgba(0,243,255,0.25); border-color: var(--cyan); }
+.ps-switch.is-on .ps-switch-thumb { left: 20px; background: var(--cyan); }
+
+/* Monochrome Protocol's ON/OFF is plain colored text in source, not a boxed
+   toggle -- see MainActivity.kt's Monochrome row (Text, not Switch). */
+.ps-value-off { font-family: var(--font-display); font-size: 0.6rem; font-weight: bold; color: var(--pink-bright); }
+
+/* Active Theme palette list */
+.ps-palette-list { display: flex; flex-direction: column; gap: 0.65rem; }
+.ps-palette-row { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-display); font-size: 0.7rem; font-weight: bold; }
+.ps-palette-row.is-active { color: var(--cyan); }
+.ps-palette-row:not(.is-active) { color: #ccc; }
+.ps-palette-active-tag { color: var(--pink-bright); font-size: 0.6rem; }
+
+/* PanelHeader recreation (title + close X) used by the Accessibility and
+   Appearance deck mockups below -- the real close button every panel now
+   has, see README "Accessibility & Theme, always on hand". */
+.ps-panel-header { display: flex; justify-content: space-between; align-items: center; text-align: left; margin-bottom: 0.9rem; }
+.hdr-icon.is-close { color: var(--cyan); width: 16px; height: 16px; }
+.ps-value-main { font-family: var(--font-display); color: var(--text); font-weight: bold; font-size: 0.85rem; margin: -0.2rem 0 0.8rem; text-align: left; }
+
 /* An in-app-style notice strip, standing in for a plain website banner --
    still styled as something the app itself would show, not page chrome. */
 .sys-notice {
@@ -302,11 +340,13 @@ details.deck-select[open] > summary .car { transform: rotate(180deg); }
       <summary>DECKS <span class="car" aria-hidden="true">&#9662;</span></summary>
       <div class="deck-select-menu">
         <a href="#deck-mission">01 Mission Control</a>
-        <a href="#deck-reactor">02 Reactor</a>
-        <a href="#deck-clinical">03 Clinical</a>
-        <a href="#deck-safety">04 Safety &amp; Lockdown</a>
-        <a href="#deck-setup">05 Initialization</a>
-        <a href="#deck-install">06 Installation</a>
+        <a href="#deck-accessibility">02 Accessibility</a>
+        <a href="#deck-appearance">03 Appearance</a>
+        <a href="#deck-reactor">04 Reactor</a>
+        <a href="#deck-clinical">05 Clinical</a>
+        <a href="#deck-safety">06 Safety &amp; Lockdown</a>
+        <a href="#deck-setup">07 Initialization</a>
+        <a href="#deck-install">08 Installation</a>
       </div>
     </details>
   </div>
@@ -326,11 +366,34 @@ details.deck-select[open] > summary .car { transform: rotate(180deg); }
           <a href="#deck-install">Installation</a>.
         </div>
 
-        <div role="img" aria-label="Mission Control screen: header reads NEON // FLUX, Clinical Controller. Waveform is set to Pulse, with Geiger, Throb and Custom also available. Frequency slider at 60 BPM. Intensity slider at 50%. Sleep Protocol is off. Memory bank buttons read Engram, Daemon, Ghost and Enable. Below that, an Emergency Protocol button, the Bio-Metric Visualizer reading Awaiting Telemetry, and an Upload Configuration button.">
+        <div role="img" aria-label="Mission Control screen: header reads NEON // FLUX, Clinical Controller, with a Theme icon and an Accessibility icon always visible top-right (see the Accessibility and Appearance decks below). Waveform is set to Pulse, with Geiger, Throb and Custom also available. Frequency slider at 60 BPM. Intensity slider at 50%. Sleep Protocol is off. Memory bank buttons read Engram, Daemon, Ghost and Enable. Below that, an Emergency Protocol button, the Bio-Metric Visualizer reading Awaiting Telemetry, and an Upload Configuration button.">
           <div aria-hidden="true">
             <div class="ps-statusbar"><span>9:41</span><span>100%</span></div>
-            <h1 class="dash-header-title">NEON // FLUX</h1>
-            <p class="dash-header-sub">CLINICAL CONTROLLER</p>
+            <div class="dash-header-row">
+              <div>
+                <h1 class="dash-header-title">NEON // FLUX</h1>
+                <p class="dash-header-sub">CLINICAL CONTROLLER</p>
+              </div>
+              <div class="dash-header-icons">
+                <span class="hdr-icon-btn">
+                  <svg class="hdr-icon is-palette" viewBox="0 0 24 24" focusable="false">
+                    <path d="M12 2C6.48 2 2 6.03 2 11c0 3.31 2.69 5 6 5h1a2 2 0 0 1 2 2c0 .74-.4 1.38-1 1.73.7.17 1.45.27 2 .27 5.52 0 10-4.48 10-10S17.52 2 12 2Z"/>
+                    <circle class="hole" cx="7.2" cy="10.6" r="1.4"/>
+                    <circle class="hole" cx="11.3" cy="6.8" r="1.4"/>
+                    <circle class="hole" cx="16.2" cy="8.6" r="1.4"/>
+                    <circle class="hole" cx="17.3" cy="13.4" r="1.4"/>
+                  </svg>
+                </span>
+                <span class="hdr-icon-btn">
+                  <svg class="hdr-icon is-a11y" viewBox="0 0 24 24" focusable="false">
+                    <circle cx="12" cy="5" r="2.1"/>
+                    <rect x="4" y="8.4" width="16" height="2.4" rx="1.2"/>
+                    <rect x="10.4" y="8.4" width="3.2" height="7" rx="1"/>
+                    <path d="M12 15 L8 21.5 L10 22.3 L12 17.8 L14 22.3 L16 21.5 Z"/>
+                  </svg>
+                </span>
+              </div>
+            </div>
 
             <p class="ps-label">WAVEFORM</p>
             <div class="ps-row">
@@ -405,6 +468,89 @@ details.deck-select[open] > summary .car { transform: rotate(180deg); }
 
       </div>
     </div>
+  </section>
+
+  <section id="deck-accessibility" class="deck">
+    <p class="deck-eyebrow">// Accessibility</p>
+    <div class="phone-frame">
+      <div class="phone-notch" aria-hidden="true"></div>
+      <div class="phone-screen">
+
+        <div role="img" aria-label="Accessibility panel: header reads ACCESSIBILITY with a close button. Smart High Contrast is on. Phone Font Scale slider at 100%. Watch Font Scale slider at 100%.">
+          <div aria-hidden="true">
+            <div class="ps-panel-header">
+              <h2 class="dash-header-title" style="font-size:0.95rem;">ACCESSIBILITY</h2>
+              <svg class="hdr-icon is-close" viewBox="0 0 24 24" focusable="false"><path d="M6 6 L18 18 M18 6 L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>
+            </div>
+
+            <div class="ps-toggle-row">
+              <p class="ps-toggle-title">SMART HIGH CONTRAST</p>
+              <span class="ps-switch is-on"><span class="ps-switch-thumb"></span></span>
+            </div>
+
+            <div class="ps-slider">
+              <div class="ps-slider-label"><span>PHONE FONT SCALE</span><strong>100%</strong></div>
+              <div class="ps-track"><div class="ps-fill" style="width:0%"></div><div class="ps-thumb cut-thumb" style="left:0%"></div></div>
+            </div>
+
+            <div class="ps-slider">
+              <div class="ps-slider-label"><span>WATCH FONT SCALE</span><strong>100%</strong></div>
+              <div class="ps-track"><div class="ps-fill" style="width:0%"></div><div class="ps-thumb cut-thumb" style="left:0%"></div></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <p class="deck-copy">
+      The standard accessibility icon sits in the phone app's header at all
+      times — tap it to open this panel, no hunting required.
+      <strong>Smart High Contrast</strong> boosts any accent color that
+      isn't already bright enough against the background, rather than
+      swapping in a whole separate palette. <strong>Font Scale</strong> has
+      two independent sliders: one for the phone's own text, and one that
+      syncs live to the watch.
+    </p>
+  </section>
+
+  <section id="deck-appearance" class="deck">
+    <p class="deck-eyebrow">// Appearance</p>
+    <div class="phone-frame">
+      <div class="phone-notch" aria-hidden="true"></div>
+      <div class="phone-screen">
+
+        <div role="img" aria-label="Appearance panel: header reads APPEARANCE with a close button. Monochrome Protocol is off. Active Theme is Default Cyber. Other palettes available: Toxic Venom, Solar Flare, Ghost Shell.">
+          <div aria-hidden="true">
+            <div class="ps-panel-header">
+              <h2 class="dash-header-title" style="font-size:0.95rem;">APPEARANCE</h2>
+              <svg class="hdr-icon is-close" viewBox="0 0 24 24" focusable="false"><path d="M6 6 L18 18 M18 6 L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>
+            </div>
+
+            <div class="ps-toggle-row">
+              <p class="ps-toggle-title">MONOCHROME PROTOCOL</p>
+              <span class="ps-value-off">OFF</span>
+            </div>
+
+            <p class="ps-label">ACTIVE THEME:</p>
+            <p class="ps-value-main">DEFAULT CYBER</p>
+            <div class="ps-palette-list">
+              <div class="ps-palette-row is-active"><span>DEFAULT CYBER</span><span class="ps-palette-active-tag">ACTIVE</span></div>
+              <div class="ps-palette-row"><span>TOXIC VENOM</span></div>
+              <div class="ps-palette-row"><span>SOLAR FLARE</span></div>
+              <div class="ps-palette-row"><span>GHOST SHELL</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <p class="deck-copy">
+      The palette icon next to Accessibility opens this panel. Pick from
+      four preset color themes, or flip on <strong>Monochrome
+      Protocol</strong> for a single-hue display with its own HDR intensity
+      and base-color controls. Whatever you choose here pushes live to the
+      watch too.
+    </p>
   </section>
 
   <section id="deck-reactor" class="deck">
