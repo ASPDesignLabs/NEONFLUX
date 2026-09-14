@@ -324,14 +324,17 @@ details.deck-select[open] > summary .car { transform: rotate(180deg); }
 .wf-init { margin-top: 0.1rem; padding: 0.35rem 0.7rem; background: rgba(255,0,85,0.15); border: 1px solid rgba(255,0,85,0.5); color: var(--pink); font-size: 0.5rem; font-weight: bold; }
 .watch-caption { text-align: center; color: var(--text-faint); font-size: 0.75rem; max-width: 46ch; margin: 0.75rem auto 0; }
 
-/* Emergency Protocol's watch mockup: unlike Reactor/Clinical it's a full
-   black takeover screen (no ring, no config readout) - the whole face is
-   the stop target, matching the app's actual EmergencyOverrideScreen. */
-.watch-screen.is-emergency { background: #000; }
-.wf-emergency-title { margin: 0; font-size: 0.6rem; font-weight: 900; letter-spacing: 0.1em; color: var(--pink-bright); text-align: center; }
-.wf-emergency-status { margin: 0; font-size: 0.4rem; font-weight: bold; letter-spacing: 0.1em; color: #fff; }
-.wf-emergency-timer { margin: 0.25rem 0 0; font-size: 1.4rem; font-weight: bold; color: #fff; font-family: var(--font-display); }
-.wf-emergency-hint { margin-top: 0.3rem; font-size: 0.38rem; font-weight: bold; letter-spacing: 0.08em; color: var(--text-faint); }
+/* Emergency Protocol's watch mockup reuses the app's own "[ FIRMWARE
+   UPDATING ]" sync-screen look (bracketed title, TX/RX status line,
+   bordered progress-bar box) rather than a bespoke design - it's sticky
+   (no animation of its own that finishes and dismisses it), so the whole
+   face doubling as the stop target is the only real difference from that
+   screen. Matches the app's actual EmergencyOverrideScreen 1:1. */
+.wf-emergency-title { margin: 0; font-size: 0.55rem; font-weight: bold; letter-spacing: 0.08em; color: var(--pink-bright); text-align: center; }
+.wf-emergency-status { margin: 0.2rem 0 0; font-size: 0.4rem; font-weight: bold; color: var(--text-faint); }
+.wf-emergency-bar { width: 60px; height: 5px; margin-top: 0.35rem; border: 1px solid var(--pink-bright); background: var(--graphite-2); }
+.wf-emergency-bar-fill { height: 100%; background: var(--pink-bright); width: 62%; }
+.wf-emergency-hint { margin-top: 0.35rem; font-size: 0.36rem; font-weight: bold; letter-spacing: 0.06em; color: var(--text-faint); }
 </style>
 </head>
 <body>
@@ -689,11 +692,11 @@ details.deck-select[open] > summary .car { transform: rotate(180deg); }
         <p class="dash-header-sub">DISTRACTION &amp; NUMBING OVERRIDE</p>
 
         <div class="watch-mockup-row">
-          <div class="watch-frame" role="img" aria-label="Emergency Protocol on the watch: full black takeover screen reading EMERGENCY PROTOCOL, OVERRIDE ACTIVE, a countdown of 04:32, and TAP ANYWHERE TO HALT.">
-            <div class="watch-screen is-emergency" aria-hidden="true">
-              <p class="wf-emergency-title">EMERGENCY<br />PROTOCOL</p>
-              <p class="wf-emergency-status">OVERRIDE ACTIVE</p>
-              <p class="wf-emergency-timer">04:32</p>
+          <div class="watch-frame" role="img" aria-label="Emergency Protocol on the watch: a retooled version of the app's firmware-update sync screen, reading bracketed EMERGENCY PROTOCOL, a status line TX: OVERRIDE // 04:32, a draining progress bar, and TAP ANYWHERE TO HALT.">
+            <div class="watch-screen" aria-hidden="true">
+              <p class="wf-emergency-title">[ EMERGENCY<br />PROTOCOL ]</p>
+              <p class="wf-emergency-status">TX: OVERRIDE // 04:32</p>
+              <div class="wf-emergency-bar"><div class="wf-emergency-bar-fill"></div></div>
               <p class="wf-emergency-hint">TAP ANYWHERE TO HALT</p>
             </div>
           </div>
@@ -701,7 +704,11 @@ details.deck-select[open] > summary .car { transform: rotate(180deg); }
         <p class="watch-caption">
           Not a third deck you switch into — it seizes the watch from
           whatever Reactor or Clinical was doing, regardless of activity or
-          state, for a fixed duration or indefinitely.
+          state, for a fixed duration or indefinitely. The screen shown here
+          is deliberately a retooled version of the Clinical deck's own
+          "[ FIRMWARE UPDATING ]" sync screen — same look, but sticky: it
+          stays up for as long as the override runs, which makes it the
+          definitive on-watch indicator that you're in this mode.
         </p>
 
         <div class="deck-copy">

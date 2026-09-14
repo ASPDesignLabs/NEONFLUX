@@ -295,55 +295,72 @@ fun SafeModeScreen(batteryLevel: Int) {
     }
 }
 
-// Full-screen takeover while Emergency Protocol is engaged. The whole screen
-// is the stop target (not a small button, and not the 2-finger/3s Lockdown
-// Gesture used elsewhere) - continuous max-strength vibration makes fine
-// motor control and multi-touch timing an unreasonable ask, so a single tap
-// anywhere, or the physical back button, both HALT it immediately.
+// Full-screen takeover while Emergency Protocol is engaged - reuses the
+// "[ FIRMWARE UPDATING ]" sync screen's look (same bracketed title, RX/TX
+// status line, and bordered progress-bar box) rather than a bespoke design,
+// so it reads as the same family of system-level overlay. Unlike that sync
+// screen, this one is sticky: it has no animation of its own that finishes
+// and dismisses it - it stays up for as long as isEmergencyActive is true
+// (driven by FluxService's real timer/halt, not a local animation), which
+// makes it the definitive on-watch indicator that this mode is engaged.
+// The whole screen is the stop target (not a small button, and not the
+// 2-finger/3s Lockdown Gesture used elsewhere) - continuous max-strength
+// vibration makes fine motor control and multi-touch timing an unreasonable
+// ask, so a single tap anywhere, or the physical back button, both HALT it.
 @Composable
-fun EmergencyOverrideScreen(endTime: Long, isIndefinite: Boolean, onHalt: () -> Unit) {
+fun EmergencyOverrideScreen(endTime: Long, durationMin: Int, onHalt: () -> Unit) {
+    val isIndefinite = durationMin < 0
     BackHandler(enabled = true) { onHalt() }
 
     var remainingText by remember { mutableStateOf(if (isIndefinite) "INDEFINITE" else "--:--") }
-    LaunchedEffect(endTime, isIndefinite) {
+    var remainingFraction by remember { mutableFloatStateOf(1f) }
+    val totalMs = remember(durationMin) { durationMin * 60_000L }
+
+    LaunchedEffect(endTime, isIndefinite, totalMs) {
         if (!isIndefinite) {
             while (true) {
                 val remainingMs = (endTime - System.currentTimeMillis()).coerceAtLeast(0)
                 val totalSec = remainingMs / 1000
                 remainingText = "%02d:%02d".format(totalSec / 60, totalSec % 60)
+                remainingFraction = if (totalMs > 0) (remainingMs.toFloat() / totalMs.toFloat()).coerceIn(0f, 1f) else 0f
                 if (remainingMs <= 0) break
-                delay(500)
+                delay(250)
             }
         }
     }
 
+    // INF mode has no fixed duration to drain toward, so the bar pulses
+    // (full <-> dim) instead of counting down - still a live, sticky signal
+    // that the override is running, just an indefinite one.
     val infiniteTransition = rememberInfiniteTransition(label = "emergencyPulse")
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.5f,
+    val pulseRatio by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(animation = tween(500), repeatMode = RepeatMode.Reverse),
-        label = "emergencyPulseAlpha"
+        animationSpec = infiniteRepeatable(animation = tween(900, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
+        label = "emergencyPulseRatio"
     )
+    val barFraction = if (isIndefinite) pulseRatio else remainingFraction
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(FluxBg)
             .clickable(onClick = onHalt),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("[ EMERGENCY PROTOCOL ]", color = FluxPink, fontSize = 10.wsp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Spacer(Modifier.height(8.dp))
             Text(
-                "EMERGENCY PROTOCOL",
-                color = FluxPink.copy(alpha = pulseAlpha),
-                fontSize = 13.wsp, fontWeight = FontWeight.Black, letterSpacing = 1.5.sp
+                if (isIndefinite) "TX: CONTINUOUS_OVERRIDE" else "TX: OVERRIDE // $remainingText",
+                color = FluxTextDim, fontSize = 8.wsp, fontWeight = FontWeight.Bold
             )
-            Spacer(Modifier.height(6.dp))
-            Text("OVERRIDE ACTIVE", color = Color.White, fontSize = 9.wsp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-            Spacer(Modifier.height(16.dp))
-            Text(remainingText, color = Color.White, fontSize = 22.wsp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(20.dp))
-            Text("TAP ANYWHERE TO HALT", color = FluxTextDim, fontSize = 9.wsp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Spacer(Modifier.height(15.dp))
+            Box(Modifier.width(120.dp).height(8.dp).border(1.dp, FluxPink).background(FluxDark)) {
+                Box(Modifier.fillMaxHeight().fillMaxWidth(barFraction).background(FluxPink))
+            }
+            Spacer(Modifier.height(15.dp))
+            Text("TAP ANYWHERE TO HALT", color = FluxTextDim, fontSize = 8.wsp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
         }
     }
 }
@@ -613,7 +630,7 @@ fun NeonFluxWatchUI(activity: MainActivity) {
     if (isEmergencyActive) {
         EmergencyOverrideScreen(
             endTime = emergencyEndTime,
-            isIndefinite = emergencyDurationMin < 0,
+            durationMin = emergencyDurationMin,
             onHalt = { activity.fluxService?.haltEmergencyFromWatch() }
         )
         return

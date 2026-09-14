@@ -471,9 +471,22 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
 
         isEmergencyActive = true
         val amp = (intensityPct / 100f * 255).toInt().coerceAtLeast(10).coerceAtMost(255)
-        val vibrateMs = if (durationMin >= 0) durationMin * 60_000L else EMERGENCY_MAX_DURATION_MS
+        // createOneShot() throws for a duration <= 0 - floor it defensively so a
+        // malformed/unexpected durationMin can never silently kill the whole call.
+        val vibrateMs = (if (durationMin >= 0) durationMin * 60_000L else EMERGENCY_MAX_DURATION_MS).coerceAtLeast(1000L)
 
-        vibrator.vibrate(VibrationEffect.createOneShot(vibrateMs, amp))
+        // Every other vibrate() call in this file branches on hasAmplitudeControl()
+        // before passing a custom amplitude - this one didn't, which is the likely
+        // reason haptics weren't firing on hardware without amplitude control (the
+        // amplitude-scaled one-shot can silently no-op there instead of falling
+        // back). DEFAULT_AMPLITUDE still gives a long continuous vibration at the
+        // motor's default strength, unlike the createPredefined() fallbacks used
+        // elsewhere, which are short canned clicks - wrong shape for this profile.
+        if (vibrator.hasAmplitudeControl()) {
+            vibrator.vibrate(VibrationEffect.createOneShot(vibrateMs, amp))
+        } else {
+            vibrator.vibrate(VibrationEffect.createOneShot(vibrateMs, VibrationEffect.DEFAULT_AMPLITUDE))
+        }
         updateState("EMERGENCY OVERRIDE")
         broadcastEmergencyToUI(active = true, durationMin = durationMin)
 
