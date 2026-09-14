@@ -70,6 +70,10 @@ val FluxPink = Color(0xFFFF0055)
 val FluxDark = Color(0xFF121212)
 val FluxBg = Color(0xFF050505)
 
+// Docs promise the app refuses to run below this and closes if it drops below
+// this mid-session - see README "SAFE MODE".
+const val SAFE_MODE_BATTERY_THRESHOLD = 15
+
 // --- HELPERS ---
 fun vibrateAck(context: Context) {
     val v = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -173,8 +177,8 @@ class MainActivity : ComponentActivity() {
         }
     }
     
-    fun terminateApp() {
-        fluxService?.haltService()
+    fun terminateApp(reason: String? = null) {
+        fluxService?.haltService(reason)
         finish()
     }
 
@@ -226,6 +230,22 @@ fun RunningIndicator(color: Color, modifier: Modifier = Modifier) {
     }
 }
 
+@Composable
+fun SafeModeScreen(batteryLevel: Int) {
+    Box(Modifier.fillMaxSize().background(FluxBg), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("SAFE MODE", color = FluxPink, fontSize = 14.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+            Spacer(Modifier.height(10.dp))
+            Text("CORE $batteryLevel%", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "CHARGE ABOVE $SAFE_MODE_BATTERY_THRESHOLD% TO CONTINUE",
+                color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun NeonFluxWatchUI(activity: MainActivity) {
@@ -236,7 +256,11 @@ fun NeonFluxWatchUI(activity: MainActivity) {
     var currentDeck by remember { mutableStateOf(Deck.REACTOR) }
     var showExitDialog by remember { mutableStateOf(false) }
     var profileNameToast by remember { mutableStateOf("") }
-    var batteryLevel by remember { mutableIntStateOf(100) }
+    val batteryManager = remember { context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager }
+    // Read live on first composition (not a placeholder default) so Safe Mode's
+    // launch-time refusal is correct on the very first frame, not just after the
+    // first 5s poll tick below.
+    var batteryLevel by remember { mutableIntStateOf(batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)) }
     var timeRemaining by remember { mutableStateOf("CALC...") }
     var isAudioMode by remember { mutableStateOf(false) }
     var fluxState by remember { mutableStateOf(FluxState.MONITOR) }
@@ -330,9 +354,8 @@ fun NeonFluxWatchUI(activity: MainActivity) {
 
     // BATTERY MON
     LaunchedEffect(isClinicalActive, isAudioMode, fluxState) {
-        val bm = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
         while(isActive) {
-            val lvl = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+            val lvl = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
             batteryLevel = lvl
             val burnRate = if(isClinicalActive) 0.3 else if (isAudioMode) 0.8 else 0.5 
             val minsLeft = (lvl / burnRate).toInt()
@@ -346,6 +369,26 @@ fun NeonFluxWatchUI(activity: MainActivity) {
     val isLockedDown = isClinicalActive && countdownValue == 0
     val isReactorRunning = fluxState == FluxState.ACTIVE && currentDeck == Deck.REACTOR
     val isSessionRunning = isLockedDown || isReactorRunning
+    val isSafeModeLocked = batteryLevel < SAFE_MODE_BATTERY_THRESHOLD
+
+    // SAFE MODE: refuse to run below the threshold. If the battery crosses under
+    // it while a session is actually running, close out rather than let a session
+    // that's already draining power keep going.
+    LaunchedEffect(isSafeModeLocked) {
+        if (isSafeModeLocked && isSessionRunning) {
+            activity.terminateApp(reason = "LOW_BATTERY")
+        }
+    }
+
+    // Bail out before BackHandler/countdown/auto-sleep/motion-wake are even
+    // registered, so none of them can react while the lockout screen is up -
+    // the back button falls through to the normal system behavior instead of
+    // being intercepted by the (unregistered) exit dialog.
+    if (isSafeModeLocked) {
+        SafeModeScreen(batteryLevel)
+        return
+    }
+
     // Dark curtain now follows the phone's SLEEP PROTOCOL toggle only - outside
     // of sleep mode we keep the deck UI up so it's clear what's running.
     val shouldDarken = activity.clinicalSleep && isSessionRunning && !showExitDialog
