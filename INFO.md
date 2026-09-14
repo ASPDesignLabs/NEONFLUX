@@ -71,9 +71,9 @@ The haptic beat begins. It uses an absolute-time drift correction algorithm, mea
 To stop, tap the screen or use the Emergency Halt (see below).
 Safety & Lockdown Features
 1. The Curtain (Focus Mode):
-If you start movement with the Reactor Deck open, leave the Reactor Deck alone for a few seconds, or if Clinical Mode is running with Sleep Protocol active, a "Dark Curtain" fades in, dimming the UI to near-black.
+While Clinical Mode is running with Sleep Protocol active, a "Dark Curtain" fades in, dimming the UI to near-black. Outside of Sleep Protocol, the deck UI stays up so it's always clear what's running.
 Why? Saves OLED screens from burn in, preserves battery life, while reducing visual overstimulation.
-Wake: In the Reactor and Clinical Deck you tap the screen once to lift the curtain. If Sleep Protocol is enabled under Clinical Deck you'll need to use the Lockdown gesture.
+Wake: Use the Lockdown gesture to stop the session - there's no separate "just peek" wake while Sleep Protocol is active.
 2. Lockdown Gesture (Emergency Stop):
 If the sensation becomes overwhelming or you cannot look at the screen to find a button:
 Action: Place two fingers on the screen and hold for 3 seconds.

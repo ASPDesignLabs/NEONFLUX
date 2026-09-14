@@ -94,7 +94,9 @@ private const val PATH_CLINICAL_PREPARE = "/clinical_prepare"
 private const val PATH_CLINICAL_READY = "/clinical_ready"
 private const val PATH_CLINICAL_ENGAGE = "/clinical_engage"
 
-private const val CLINICAL_START_LEAD_MS = 2_000L
+// Kept in sync with FluxService.kt's CLINICAL_START_LEAD_MS (unused here today,
+// but duplicated under the same name - update both if either changes).
+private const val CLINICAL_START_LEAD_MS = 3_000L
 // GLSL Support
 // Enhanced Multi-Layer LCD Display with Block-Tearing Glitch & Flicker
 const val MultiLayerLcdShader = """

@@ -126,6 +126,13 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
         
         // CASE 2: ENGAGE MOTOR (MIRRORED START)
         else if (event.path == "/clinical_engage") {
+            // Safe Mode applies here too - the watch UI already refuses to open the
+            // INITIALIZE button below the battery threshold, but a remote engage
+            // reaches this handler directly, bypassing the UI entirely.
+            if (!isBatterySafe()) {
+                Log.w("FluxService", "Declining remote engage - battery below safe threshold")
+                return
+            }
             try {
                 val buffer = ByteBuffer.wrap(event.data)
                 val profile = buffer.get().toInt()
@@ -138,11 +145,16 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
 
                 // Update UI first
                 broadcastConfigToUI(profile, bpm, intensity, sleep)
+                // Flip the watch UI into the running state (countdown + two-finger
+                // lockdown gesture) even though this device didn't initiate the
+                // session - otherwise a phone-initiated session runs with no
+                // on-watch emergency stop available.
+                broadcastRemoteEngageToUI()
 
                 // Stop any existing loop
                 synth.stop()
                 clinicalJob?.cancel()
-                
+
                 // Start with precision delay
                 startClinicalWithDelay(bpm, intensity, profile, targetTime)
                 vibrateAck()
@@ -155,6 +167,127 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
             haltLoops()
             vibrateAck()
         }
+
+        // CASE 4: PHONE-INITIATED PREPARE (2-phase handshake for the phone's
+        // local "ENABLE" control) - config-only, mirrors CASE 1, but replies
+        // /clinical_ready so the phone's engagePreparedClinicalStart() can
+        // proceed to send /clinical_engage.
+        else if (event.path == "/clinical_prepare") {
+            if (!isBatterySafe()) {
+                Log.w("FluxService", "Declining clinical_prepare - battery below safe threshold")
+                return
+            }
+            try {
+                val buffer = ByteBuffer.wrap(event.data)
+                val profile = buffer.get().toInt()
+                val bpm = buffer.getInt()
+                val intensity = buffer.get().toInt()
+                val sleep = buffer.get().toInt() == 1
+
+                Log.d("FluxService", "RX Prepare: $bpm BPM")
+
+                activeProfile = profile
+                broadcastConfigToUI(profile, bpm, intensity, sleep)
+
+                Wearable.getMessageClient(this).sendMessage(event.sourceNodeId, "/clinical_ready", byteArrayOf())
+                vibrateAck()
+
+            } catch (e: Exception) { Log.e("FluxService", "Prepare Error", e) }
+        }
+
+        // CASE 5: ACCESSIBILITY SYNC (High Contrast + Font Scale). Wire format
+        // from the phone's sendA11yToWatch(): [highContrast:1][fontScale:4].
+        else if (event.path == "/flux_a11y_sync") {
+            try {
+                val buffer = ByteBuffer.wrap(event.data)
+                val highContrast = buffer.get().toInt() == 1
+                val fontScale = buffer.getFloat()
+
+                getSharedPreferences("FluxWatchConfig", Context.MODE_PRIVATE).edit().apply {
+                    putBoolean("a11y_contrast", highContrast)
+                    putFloat("a11y_font_scale", fontScale)
+                    apply()
+                }
+
+                val intent = Intent("com.snakesan.neonflux.REMOTE_A11Y")
+                intent.putExtra("high_contrast", highContrast)
+                intent.putExtra("font_scale", fontScale)
+                intent.setPackage(packageName)
+                sendBroadcast(intent)
+            } catch (e: Exception) { Log.e("FluxService", "A11y Sync Error", e) }
+        }
+
+        // CASE 6: VISUAL THEME SYNC. Wire format from the phone's
+        // sendVisualThemeToWatch(): [version:1][mono:1][monoHdr:1][primary:4]
+        // [secondary:4][l1:4][l2:4][textMain:4][bg:4] as ARGB ints (27 bytes).
+        else if (event.path == "/flux_visual_theme") {
+            try {
+                val buffer = ByteBuffer.wrap(event.data)
+                buffer.get() // version - unused, reserved for future wire changes
+                val isMonochrome = buffer.get().toInt() == 1
+                buffer.get() // monoHdr - not applicable on the watch's simpler UI
+                val primary = buffer.getInt()
+                val secondary = buffer.getInt()
+                val l1 = buffer.getInt()
+                val l2 = buffer.getInt()
+                val textMain = buffer.getInt()
+                val bg = buffer.getInt()
+
+                getSharedPreferences("FluxWatchConfig", Context.MODE_PRIVATE).edit().apply {
+                    putBoolean("theme_mono", isMonochrome)
+                    putInt("theme_primary", primary)
+                    putInt("theme_secondary", secondary)
+                    putInt("theme_l1", l1)
+                    putInt("theme_l2", l2)
+                    putInt("theme_text_main", textMain)
+                    putInt("theme_bg", bg)
+                    apply()
+                }
+
+                val intent = Intent("com.snakesan.neonflux.REMOTE_THEME")
+                intent.putExtra("mono", isMonochrome)
+                intent.putExtra("primary", primary)
+                intent.putExtra("secondary", secondary)
+                intent.putExtra("l1", l1)
+                intent.putExtra("l2", l2)
+                intent.putExtra("text_main", textMain)
+                intent.putExtra("bg", bg)
+                intent.setPackage(packageName)
+                sendBroadcast(intent)
+            } catch (e: Exception) { Log.e("FluxService", "Theme Sync Error", e) }
+        }
+
+        // CASE 7: CUSTOM PROFILE METADATA. Wire format from the phone's
+        // sendCustomProfileMetadataToWatch(): [bank:1][nameLen:1][name bytes].
+        // The watch doesn't run the custom sequencer (profile 3) itself, so
+        // this just persists the name rather than losing it silently.
+        else if (event.path == "/custom_profile_meta") {
+            try {
+                val buffer = ByteBuffer.wrap(event.data)
+                val bank = buffer.get().toInt()
+                val nameLen = buffer.get().toInt() and 0xFF
+                val nameBytes = ByteArray(nameLen)
+                buffer.get(nameBytes)
+                val name = nameBytes.decodeToString()
+
+                getSharedPreferences("FluxWatchConfig", Context.MODE_PRIVATE).edit().apply {
+                    putInt("custom_bank", bank)
+                    putString("custom_name", name)
+                    apply()
+                }
+            } catch (e: Exception) { Log.e("FluxService", "Custom Profile Meta Error", e) }
+        }
+    }
+
+    private fun isBatterySafe(): Boolean {
+        val bm = getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+        return bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) >= SAFE_MODE_BATTERY_THRESHOLD
+    }
+
+    private fun broadcastRemoteEngageToUI() {
+        val intent = Intent("com.snakesan.neonflux.REMOTE_ENGAGE")
+        intent.setPackage(packageName)
+        sendBroadcast(intent)
     }
 
     private fun broadcastConfigToUI(profile: Int, bpm: Int, intensity: Int, sleep: Boolean) {
@@ -171,8 +304,10 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
     
     // NEW: Called by UI "INITIALIZE" button to start EVERYTHING
     fun broadcastStartToPhone(bpm: Int, intensity: Int, profile: Int) {
-        // 1. Calculate future start time for sync (e.g. 500ms from now)
-        val targetTime = System.currentTimeMillis() + 500
+        // Lead time must match the watch UI's 3-2-1 countdown (3x1000ms, see
+        // MainActivity's LaunchedEffect(isClinicalActive)) so the haptic beat
+        // starts as the countdown hits zero instead of ~2.5s before it finishes.
+        val targetTime = System.currentTimeMillis() + 3000
         
         // 2. Start Local Engine (Delayed)
         startClinicalWithDelay(bpm, intensity, profile, targetTime)
@@ -201,7 +336,14 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
     fun broadcastStopToPhone() {
         Wearable.getNodeClient(this).connectedNodes.addOnSuccessListener { nodes ->
             nodes.forEach { node ->
+                // /clinical_stop is the routine remote-stop the phone already
+                // handles reliably - keep sending it so a normal stop still
+                // works even if anything below has an issue.
                 Wearable.getMessageClient(this).sendMessage(node.id, "/clinical_stop", byteArrayOf())
+                // /emergency_halt is the distinct "physical emergency gesture"
+                // signal - the phone already listens for it (EMERGENCY_HALT_UI)
+                // but nothing on the watch was ever sending it.
+                Wearable.getMessageClient(this).sendMessage(node.id, "/emergency_halt", byteArrayOf())
             }
         }
         haltLoops()
@@ -244,27 +386,31 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
         updateState("STANDBY")
     }
 
-    fun haltService() {
+    fun haltService(reason: String? = null) {
         isRunning = false
         clinicalJob?.cancel()
         synth.stop()
-        updateState("STANDBY")
+        updateState("STANDBY", reason)
         if (wakeLock?.isHeld == true) wakeLock?.release()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 
     // --- STATE PUBLISHER ---
-    private fun updateState(modeText: String) {
+    // reason is an optional extra cause tag (e.g. "LOW_BATTERY") for Overseer's
+    // UPDATE_STATUS bridge - source_app/flux_mode/is_active stay untouched so the
+    // existing contract doesn't change for anyone not looking at halt_reason.
+    private fun updateState(modeText: String, reason: String? = null) {
         if (currentMode == modeText) return
         currentMode = modeText
-        
+
         // 1. Broadcast to Overseer (Legacy Bridge)
         val overseerIntent = Intent("com.snakesan.overseer.UPDATE_STATUS")
         overseerIntent.setPackage("com.snakesan.overseer")
         overseerIntent.putExtra("source_app", "FLUX")
         overseerIntent.putExtra("flux_mode", modeText)
         overseerIntent.putExtra("is_active", isRunning)
+        if (reason != null) overseerIntent.putExtra("halt_reason", reason)
         sendBroadcast(overseerIntent)
 
         // 2. Broadcast to Local UI

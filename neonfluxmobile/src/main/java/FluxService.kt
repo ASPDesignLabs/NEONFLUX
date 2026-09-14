@@ -24,7 +24,10 @@ private const val PATH_CLINICAL_PREPARE = "/clinical_prepare"
 private const val PATH_CLINICAL_READY = "/clinical_ready"
 private const val PATH_CLINICAL_ENGAGE = "/clinical_engage"
 
-private const val CLINICAL_START_LEAD_MS = 2_000L
+// Matches the watch's 3-2-1 countdown duration (see app-side FluxService's
+// broadcastStartToPhone) so a phone-initiated engage shows/feels the same
+// lead time as a watch-initiated one.
+private const val CLINICAL_START_LEAD_MS = 3_000L
 
 
 
