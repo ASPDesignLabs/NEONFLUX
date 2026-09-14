@@ -308,7 +308,7 @@ fun SafeModeScreen(batteryLevel: Int) {
 // vibration makes fine motor control and multi-touch timing an unreasonable
 // ask, so a single tap anywhere, or the physical back button, both HALT it.
 @Composable
-fun EmergencyOverrideScreen(endTime: Long, durationMin: Int, onHalt: () -> Unit) {
+fun EmergencyOverrideScreen(endTime: Long, durationMin: Int, texture: Int, onHalt: () -> Unit) {
     val isIndefinite = durationMin < 0
     BackHandler(enabled = true) { onHalt() }
 
@@ -351,8 +351,11 @@ fun EmergencyOverrideScreen(endTime: Long, durationMin: Int, onHalt: () -> Unit)
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("[ EMERGENCY PROTOCOL ]", color = FluxPink, fontSize = 10.wsp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Spacer(Modifier.height(8.dp))
+            // Names the active texture on-wrist so mid-test you can confirm
+            // which one you're actually feeling right now - the whole point
+            // of this screen while textures are being A/B tested.
             Text(
-                if (isIndefinite) "TX: CONTINUOUS_OVERRIDE" else "TX: OVERRIDE // $remainingText",
+                "TX: ${EmergencyTexture.label(texture)} // ${if (isIndefinite) "CONTINUOUS" else remainingText}",
                 color = FluxTextDim, fontSize = 8.wsp, fontWeight = FontWeight.Bold
             )
             Spacer(Modifier.height(15.dp))
@@ -396,6 +399,7 @@ fun NeonFluxWatchUI(activity: MainActivity) {
     var isEmergencyActive by remember { mutableStateOf(false) }
     var emergencyDurationMin by remember { mutableIntStateOf(-1) }
     var emergencyEndTime by remember { mutableLongStateOf(0L) }
+    var emergencyTexture by remember { mutableIntStateOf(EmergencyTexture.STEADY) }
     var previousDeckBeforeEmergency by remember { mutableStateOf(Deck.REACTOR) }
 
     // --- REMOTE SYNC RECEIVER ---
@@ -465,11 +469,13 @@ fun NeonFluxWatchUI(activity: MainActivity) {
                 if (intent?.action == "com.snakesan.neonflux.EMERGENCY_STATE") {
                     val active = intent.getBooleanExtra("active", false)
                     val durationMin = intent.getIntExtra("duration_min", -1)
+                    val texture = intent.getIntExtra("texture", EmergencyTexture.STEADY)
                     if (active) {
                         if (!isEmergencyActive) previousDeckBeforeEmergency = currentDeck
                         isEmergencyActive = true
                         emergencyDurationMin = durationMin
                         emergencyEndTime = if (durationMin >= 0) System.currentTimeMillis() + durationMin * 60_000L else 0L
+                        emergencyTexture = texture
                     } else {
                         isEmergencyActive = false
                         // Graceful return: standby on whichever deck was active before -
@@ -631,6 +637,7 @@ fun NeonFluxWatchUI(activity: MainActivity) {
         EmergencyOverrideScreen(
             endTime = emergencyEndTime,
             durationMin = emergencyDurationMin,
+            texture = emergencyTexture,
             onHalt = { activity.fluxService?.haltEmergencyFromWatch() }
         )
         return
