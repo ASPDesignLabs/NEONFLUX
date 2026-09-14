@@ -1,28 +1,24 @@
 # Landing page assets
 
-Drop real screenshots and GIFs of NeonFlux here — for `index.html` at the
-repo root.
+`index.html` now recreates the Mission Control (phone) screen and the
+Reactor/Clinical watch decks directly in HTML/CSS, built from the app's own
+Compose source (real copy, real colors, real `CutCornerShape` values) — see
+the `.phone-frame` / `.watch-frame` markup and the comment above the
+`.cc-*` cut-corner utilities in `index.html`'s `<style>`. There's no
+screenshot-wiring step for those anymore.
 
-- `screenshots/` — static screenshots. Watch shots should be square (native
-  Wear OS aspect); phone shots should be 9:16.
+This folder is still here for real device captures that a static recreation
+can't show — actual motion (the Reactor's haptic texture swap, the Clinical
+sync handshake), or a real screenshot for extra credibility once the app has
+a public release build:
+
+- `screenshots/` — static screenshots, if you want to supplement (not
+  replace) the recreations. Watch shots should be square; phone shots 9:16.
 - `gifs/` — short recordings (e.g. the Reactor's haptic texture swap, the
   Clinical sync handshake).
 - `social/` — the Open Graph / X card and its editable source.
 
-Dropping a file in here doesn't wire it up by itself — `index.html` still
-needs `data-shot-src="assets/screenshots/<filename>"` set on that item's
-`.shot-thumb` button. Current placeholder slots and their expected filenames:
-
-| Slot | Expected filename | Notes |
-| --- | --- | --- |
-| Reactor deck (watch) | `screenshots/watch-reactor.png` | The CORE ring + AUDIO toggle, square |
-| Clinical deck (watch) | `screenshots/watch-clinical.png` | BPM/INT readout + INITIALIZE button, square |
-| Mission Control (phone) | `screenshots/phone-controller.png` | Waveform/BPM/intensity controls, 9:16 |
-| Bio-Metric Visualizer (phone) | `screenshots/phone-biometric.png` | The live trace with SIGNAL LOCK, 9:16 |
-| Haptic texture swap | `gifs/reactor-texture-swap.gif` | Double-tap cycling PULSE/GEIGER/THROB |
-| Sync event | `gifs/sync-event.gif` | UPLOAD CONFIGURATION → SYNCHRONIZING → watch reload |
-| Social/OG card | `social/og-card.png` | 1200×630, rendered from `social/og-card.source.html` |
-
-Until a real file is dropped in and wired up, every screenshot placeholder
-renders as a clearly-labeled "Screenshot coming soon" panel — never a broken
-image icon.
+Dropping a file in here doesn't do anything by itself — wiring one in means
+adding markup for it in `index.html` (there's no lightbox/thumbnail
+mechanism currently in the page; the previous placeholder-screenshot system
+was removed when the phone/watch recreations replaced it).
