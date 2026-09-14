@@ -126,6 +126,13 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
         
         // CASE 2: ENGAGE MOTOR (MIRRORED START)
         else if (event.path == "/clinical_engage") {
+            // Safe Mode applies here too - the watch UI already refuses to open the
+            // INITIALIZE button below the battery threshold, but a remote engage
+            // reaches this handler directly, bypassing the UI entirely.
+            if (!isBatterySafe()) {
+                Log.w("FluxService", "Declining remote engage - battery below safe threshold")
+                return
+            }
             try {
                 val buffer = ByteBuffer.wrap(event.data)
                 val profile = buffer.get().toInt()
@@ -138,11 +145,16 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
 
                 // Update UI first
                 broadcastConfigToUI(profile, bpm, intensity, sleep)
+                // Flip the watch UI into the running state (countdown + two-finger
+                // lockdown gesture) even though this device didn't initiate the
+                // session - otherwise a phone-initiated session runs with no
+                // on-watch emergency stop available.
+                broadcastRemoteEngageToUI()
 
                 // Stop any existing loop
                 synth.stop()
                 clinicalJob?.cancel()
-                
+
                 // Start with precision delay
                 startClinicalWithDelay(bpm, intensity, profile, targetTime)
                 vibrateAck()
@@ -155,6 +167,44 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
             haltLoops()
             vibrateAck()
         }
+
+        // CASE 4: PHONE-INITIATED PREPARE (2-phase handshake for the phone's
+        // local "ENABLE" control) - config-only, mirrors CASE 1, but replies
+        // /clinical_ready so the phone's engagePreparedClinicalStart() can
+        // proceed to send /clinical_engage.
+        else if (event.path == "/clinical_prepare") {
+            if (!isBatterySafe()) {
+                Log.w("FluxService", "Declining clinical_prepare - battery below safe threshold")
+                return
+            }
+            try {
+                val buffer = ByteBuffer.wrap(event.data)
+                val profile = buffer.get().toInt()
+                val bpm = buffer.getInt()
+                val intensity = buffer.get().toInt()
+                val sleep = buffer.get().toInt() == 1
+
+                Log.d("FluxService", "RX Prepare: $bpm BPM")
+
+                activeProfile = profile
+                broadcastConfigToUI(profile, bpm, intensity, sleep)
+
+                Wearable.getMessageClient(this).sendMessage(event.sourceNodeId, "/clinical_ready", byteArrayOf())
+                vibrateAck()
+
+            } catch (e: Exception) { Log.e("FluxService", "Prepare Error", e) }
+        }
+    }
+
+    private fun isBatterySafe(): Boolean {
+        val bm = getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+        return bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) >= SAFE_MODE_BATTERY_THRESHOLD
+    }
+
+    private fun broadcastRemoteEngageToUI() {
+        val intent = Intent("com.snakesan.neonflux.REMOTE_ENGAGE")
+        intent.setPackage(packageName)
+        sendBroadcast(intent)
     }
 
     private fun broadcastConfigToUI(profile: Int, bpm: Int, intensity: Int, sleep: Boolean) {
@@ -203,7 +253,14 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
     fun broadcastStopToPhone() {
         Wearable.getNodeClient(this).connectedNodes.addOnSuccessListener { nodes ->
             nodes.forEach { node ->
+                // /clinical_stop is the routine remote-stop the phone already
+                // handles reliably - keep sending it so a normal stop still
+                // works even if anything below has an issue.
                 Wearable.getMessageClient(this).sendMessage(node.id, "/clinical_stop", byteArrayOf())
+                // /emergency_halt is the distinct "physical emergency gesture"
+                // signal - the phone already listens for it (EMERGENCY_HALT_UI)
+                // but nothing on the watch was ever sending it.
+                Wearable.getMessageClient(this).sendMessage(node.id, "/emergency_halt", byteArrayOf())
             }
         }
         haltLoops()

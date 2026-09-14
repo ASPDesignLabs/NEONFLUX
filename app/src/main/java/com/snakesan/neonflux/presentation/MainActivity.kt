@@ -301,7 +301,30 @@ fun NeonFluxWatchUI(activity: MainActivity) {
         }
         onDispose { try { context.unregisterReceiver(syncReceiver) } catch (e: Exception) {} }
     }
-    
+
+    // --- REMOTE ENGAGE RECEIVER ---
+    // Fired by FluxService when a /clinical_engage arrives from the phone, so a
+    // phone-initiated session still shows the watch's countdown and arms the
+    // two-finger lockdown gesture (isLockedDown below) - without this the watch
+    // would be running a session with no on-device emergency stop available.
+    DisposableEffect(Unit) {
+        val engageReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == "com.snakesan.neonflux.REMOTE_ENGAGE") {
+                    currentDeck = Deck.CLINICAL
+                    isClinicalActive = true
+                }
+            }
+        }
+        val filter = IntentFilter("com.snakesan.neonflux.REMOTE_ENGAGE")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(engageReceiver, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            context.registerReceiver(engageReceiver, filter)
+        }
+        onDispose { try { context.unregisterReceiver(engageReceiver) } catch (e: Exception) {} }
+    }
+
     // --- KILL SWITCH ---
     DisposableEffect(Unit) {
         val receiver = object : BroadcastReceiver() {
