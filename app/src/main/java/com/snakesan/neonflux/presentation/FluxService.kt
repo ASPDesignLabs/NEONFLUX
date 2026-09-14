@@ -28,9 +28,16 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
     
     // Engine State
     private var isRunning = false
-    private var currentMode = "STANDBY" 
+    private var currentMode = "STANDBY"
     private var activeProfile = 0
     private var clinicalJob: Job? = null
+
+    // Emergency Protocol State - separate from isRunning/clinicalJob so it can
+    // seize control regardless of whatever Reactor/Clinical was doing, and so
+    // haltEmergency()/finishEmergency() never race with an unrelated
+    // clinical_stop or reactor mode switch.
+    private var isEmergencyActive = false
+    private var emergencyJob: Job? = null
     
     private val binder = LocalBinder()
     
@@ -131,6 +138,13 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
             // reaches this handler directly, bypassing the UI entirely.
             if (!isBatterySafe()) {
                 Log.w("FluxService", "Declining remote engage - battery below safe threshold")
+                return
+            }
+            // Emergency Protocol takes over regardless of activity or state -
+            // an unrelated remote engage arriving mid-override must not be
+            // able to hijack the motor away from it.
+            if (isEmergencyActive) {
+                Log.w("FluxService", "Declining remote engage - Emergency Protocol is active")
                 return
             }
             try {
@@ -277,6 +291,28 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
                 }
             } catch (e: Exception) { Log.e("FluxService", "Custom Profile Meta Error", e) }
         }
+
+        // CASE 8: EMERGENCY PROTOCOL OVERRIDE. Wire format from the phone's
+        // sendEmergencyToWatch(): [mode:1][intensity 0-100:4 float][durationMin:4 int].
+        // mode 0 is the phone's HALT button (durationMin unused); mode 1/2/3
+        // (5MIN/7MIN/INF) all mean "on" - durationMin carries the real timer
+        // (-1 for INF). This was previously unhandled entirely, which is why
+        // Emergency Protocol never did anything on the watch - the phone was
+        // sending this correctly the whole time.
+        else if (event.path == "/emergency_override") {
+            try {
+                val buffer = ByteBuffer.wrap(event.data)
+                val mode = buffer.get().toInt()
+                val intensityPct = buffer.getFloat()
+                val durationMin = buffer.getInt()
+
+                if (mode == 0) {
+                    haltEmergency()
+                } else {
+                    startEmergency(intensityPct, durationMin)
+                }
+            } catch (e: Exception) { Log.e("FluxService", "Emergency Override Error", e) }
+        }
     }
 
     private fun isBatterySafe(): Boolean {
@@ -350,6 +386,10 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
     }
 
     fun setReactorMode(audioEnabled: Boolean, profile: Int) {
+        // Defense-in-depth: the watch UI already avoids reaching this while
+        // Emergency Protocol owns the screen, but never let anything hijack
+        // the motor away from it.
+        if (isEmergencyActive) return
         clinicalJob?.cancel()
         isRunning = true
         activeProfile = profile
@@ -390,10 +430,102 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
         isRunning = false
         clinicalJob?.cancel()
         synth.stop()
+        isEmergencyActive = false
+        emergencyJob?.cancel()
+        vibrator.cancel()
         updateState("STANDBY", reason)
         if (wakeLock?.isHeld == true) wakeLock?.release()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
+    }
+
+    // --- EMERGENCY PROTOCOL ---
+    // A distraction/grounding profile, distinct from the Lockdown Gesture's
+    // panic-stop: sustained continuous vibration at a user-selected strength
+    // that takes over from Reactor/Clinical regardless of what was running,
+    // for a fixed duration (5/7 min) or indefinitely until halted.
+
+    // Ceiling on a single indefinite-mode vibrate() call, mirroring the 24hr
+    // wakeLock timeout above - VibrationEffect.createOneShot() needs a
+    // concrete duration, and "indefinite" should still never mean truly
+    // unbounded on hardware in continuous contact with skin.
+    private val EMERGENCY_MAX_DURATION_MS = 24 * 60 * 60 * 1000L
+
+    fun startEmergency(intensityPct: Float, durationMin: Int) {
+        // Safe Mode applies here too, and matters more than anywhere else in
+        // this file - this is the single most power-hungry, highest-amplitude
+        // profile the watch has.
+        if (!isBatterySafe()) {
+            Log.w("FluxService", "Declining emergency override - battery below safe threshold")
+            return
+        }
+
+        // Seize control: Reactor/Clinical's own loops just check `isRunning`
+        // each iteration and exit on their own (same mechanism haltLoops()
+        // already relies on), so flipping it off here is enough to take over
+        // regardless of whichever deck/activity was active.
+        isRunning = false
+        clinicalJob?.cancel()
+        synth.stop()
+        emergencyJob?.cancel()
+
+        isEmergencyActive = true
+        val amp = (intensityPct / 100f * 255).toInt().coerceAtLeast(10).coerceAtMost(255)
+        val vibrateMs = if (durationMin >= 0) durationMin * 60_000L else EMERGENCY_MAX_DURATION_MS
+
+        vibrator.vibrate(VibrationEffect.createOneShot(vibrateMs, amp))
+        updateState("EMERGENCY OVERRIDE")
+        broadcastEmergencyToUI(active = true, durationMin = durationMin)
+
+        // Always schedule the auto-halt, even in INF mode - vibrateMs is the
+        // 24hr safety ceiling in that case, and this keeps the watch/phone UI
+        // in sync with the motor if that ceiling is ever actually reached.
+        emergencyJob = scope.launch {
+            delay(vibrateMs)
+            if (isEmergencyActive) finishEmergency()
+        }
+    }
+
+    // Phone-initiated HALT (mode 0 of /emergency_override).
+    fun haltEmergency() {
+        if (!isEmergencyActive) return
+        finishEmergency()
+    }
+
+    // Watch-initiated stop - the dedicated single-tap control on the Emergency
+    // Protocol screen (not the 2-finger Lockdown Gesture: coordinating a
+    // 3-second two-finger hold while under continuous max-strength vibration
+    // is an unreasonable ask). Reuses the existing /emergency_halt wire path
+    // so the phone's already-working EMERGENCY_HALT_UI receiver resets its
+    // Emergency Protocol UI exactly as it does for a phone-initiated HALT.
+    fun haltEmergencyFromWatch() {
+        finishEmergency()
+        Wearable.getNodeClient(this).connectedNodes.addOnSuccessListener { nodes ->
+            nodes.forEach { node ->
+                Wearable.getMessageClient(this).sendMessage(node.id, "/emergency_halt", byteArrayOf())
+            }
+        }
+    }
+
+    // Shared teardown for both a manual HALT and the timer running out -
+    // always lands back in STANDBY so the watch UI's own "return to whichever
+    // deck was active before, but idle" logic (see MainActivity) has a clean
+    // state to restore onto.
+    private fun finishEmergency() {
+        isEmergencyActive = false
+        emergencyJob?.cancel()
+        vibrator.cancel()
+        updateState("STANDBY")
+        broadcastEmergencyToUI(active = false, durationMin = 0)
+        vibrateAck()
+    }
+
+    private fun broadcastEmergencyToUI(active: Boolean, durationMin: Int) {
+        val intent = Intent("com.snakesan.neonflux.EMERGENCY_STATE")
+        intent.putExtra("active", active)
+        intent.putExtra("duration_min", durationMin)
+        intent.setPackage(packageName)
+        sendBroadcast(intent)
     }
 
     // --- STATE PUBLISHER ---
@@ -517,6 +649,8 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
         Wearable.getMessageClient(this).removeListener(this)
         isRunning = false
         synth.stop()
+        isEmergencyActive = false
+        vibrator.cancel()
         if (wakeLock?.isHeld == true) wakeLock?.release()
         scope.cancel()
         super.onDestroy()

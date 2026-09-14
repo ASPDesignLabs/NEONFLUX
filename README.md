@@ -100,7 +100,31 @@ Tap **INITIALIZE** on the watch.
 
 ---
 
+## // DECK 03: EMERGENCY PROTOCOL [DISTRACTION & NUMBING OVERRIDE]
+
+Not a third deck you switch into — **Emergency Protocol** seizes the watch from whatever Reactor or Clinical was doing, regardless of activity or state, for a fixed duration or indefinitely. It's a distraction/grounding tool, distinct from the Lockdown Gesture below: sustained, continuous haptic vibration — not a pulse or beat — held at one steady strength for as long as it runs, for a strong unbroken point of contact to pull focus away from an overwhelming moment, or to lean into localized numbing from constant vibration at the skin.
+
+### **How it Works**
+*   **Triggered from the phone:** Tap `EMERGENCY PROTOCOL` on Mission Control, then `5MIN`, `7MIN`, or `INF` (indefinite — gated behind its own risk-acknowledgment screen before it will start).
+*   **Strength:** The same `INTENSITY` slider used for Clinical, read at the moment you start it — there's no separate dial.
+*   **Total takeover:** Whatever the watch was doing stops immediately. Nothing else can interrupt or share the motor while it's engaged, not even a remote command arriving from the phone.
+
+### **Ending It**
+*   **On the watch:** Tap anywhere on the screen, or press the physical/back button. Deliberately *not* the two-finger, three-second Lockdown Gesture — coordinating that while under continuous max-strength vibration is an unreasonable ask, so this is a single tap, anywhere, full stop.
+*   **On the phone:** The `HALT` button in the Emergency Protocol menu.
+*   **The timer:** 5MIN and 7MIN end themselves; INF runs until one of the two HALTs above.
+*   **Graceful return:** The watch lands back on standby, on whichever deck was showing before — it never auto-resumes a Clinical beat or a Reactor session on its own.
+
+### **⚠ Extended Use — Hardware & Wetware**
+This is the single most power-hungry, highest-amplitude profile the watch has, run continuously instead of in short pulses — hardware and body concerns both scale with how long it runs.
+*   **Hardware:** Continuous full-strength vibration draws more power and runs the motor hotter than any other profile. Safe Mode still applies (see below) — the watch refuses to start, or continue, below 15% battery — but expect faster drain than Reactor or Clinical during an INF session.
+*   **Wetware:** Sustained vibration at one point of contact can cause temporary numbness, tingling, or skin irritation the longer it runs. Reduced sensation is part of the intended effect in short doses — that's not the same as it being consequence-free over long ones. Take breaks on longer sessions, and stop immediately (tap anywhere) if you notice pain, persistent numbness, or skin redness.
+
+---
+
 ## // SAFETY & LOCKDOWN
+
+Two different "emergency" mechanisms live in NeonFlux, on purpose — don't confuse them. The **Lockdown Gesture** below is a panic-stop: it kills whatever's running, full stop. **Emergency Protocol** (above) is a distraction/numbing tool you deliberately turn on — see that section for how to end a session it started.
 
 ### **1. The Curtain (Focus Mode)**
 While Clinical Mode is running with Sleep Protocol enabled, a "Dark Curtain" fades in, dimming the UI to near-black. Outside of Sleep Protocol, the deck UI stays up so it's always clear what's running.

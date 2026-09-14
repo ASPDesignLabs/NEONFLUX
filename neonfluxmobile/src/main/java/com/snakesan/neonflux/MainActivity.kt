@@ -1127,10 +1127,18 @@ fun FluxMobileUI(prefs: SharedPreferences) {
                                 }
                             }
 
+                            Text(
+                                "CONTINUOUS, AT THE INTENSITY SET ABOVE (${intensity.toInt()}%)",
+                                color = activePalette.textMain.copy(alpha = 0.5f),
+                                fontSize = (9 * phoneFontScale).sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 8.dp),
+                                    .padding(top = 6.dp),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 val emMod = Modifier.weight(1f).height(40.dp).clip(CutCornerShape(topStart = 8.dp, bottomEnd = 8.dp))
@@ -1271,6 +1279,22 @@ Spacer(modifier = Modifier.height(16.dp))
                             fontSize = 12.sp,
                             textAlign = TextAlign.Center,
                             lineHeight = 16.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // PLAIN-LANGUAGE SAFETY NOTE - the flavor text above is real
+                        // fiction dressing, but this is the actual disclaimer: INF
+                        // is the single most power-hungry, highest-amplitude profile
+                        // the watch has, run continuously instead of in short pulses,
+                        // so hardware and body concerns both scale with how long it
+                        // runs.
+                        Text(
+                            text = "IN PLAIN TERMS: continuous full-strength vibration drains the watch battery faster and runs its motor hotter than any other profile. Sustained vibration at one point of contact can also cause temporary numbness, tingling, or skin irritation the longer it runs - take breaks on longer sessions, and stop immediately if you notice pain, persistent numbness, or skin redness.",
+                            color = activePalette.textMain.copy(alpha = 0.7f),
+                            fontSize = 10.sp,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 14.sp
                         )
 
                         Spacer(modifier = Modifier.height(24.dp))
