@@ -267,6 +267,7 @@ details.deck-select[open] > summary .car { transform: rotate(180deg); }
 }
 .ps-chip-on { background: var(--cyan); color: #001014; }
 .ps-chip-outline { background: transparent; border: 1px solid #444; color: var(--text-dim); }
+.ps-chip-danger { background: rgba(255,0,85,0.12); border: 1px solid var(--pink-bright); color: var(--pink); }
 .ps-slider { margin-bottom: 0.75rem; }
 .ps-slider-label { display: flex; justify-content: space-between; font-family: var(--font-display); font-size: 0.6rem; margin-bottom: 0.3rem; }
 .ps-slider-label span { color: var(--cyan); }
@@ -322,6 +323,18 @@ details.deck-select[open] > summary .car { transform: rotate(180deg); }
 .wf-prog strong { color: var(--text); }
 .wf-init { margin-top: 0.1rem; padding: 0.35rem 0.7rem; background: rgba(255,0,85,0.15); border: 1px solid rgba(255,0,85,0.5); color: var(--pink); font-size: 0.5rem; font-weight: bold; }
 .watch-caption { text-align: center; color: var(--text-faint); font-size: 0.75rem; max-width: 46ch; margin: 0.75rem auto 0; }
+
+/* Emergency Protocol's watch mockup reuses the app's own "[ FIRMWARE
+   UPDATING ]" sync-screen look (bracketed title, TX/RX status line,
+   bordered progress-bar box) rather than a bespoke design - it's sticky
+   (no animation of its own that finishes and dismisses it), so the whole
+   face doubling as the stop target is the only real difference from that
+   screen. Matches the app's actual EmergencyOverrideScreen 1:1. */
+.wf-emergency-title { margin: 0; font-size: 0.55rem; font-weight: bold; letter-spacing: 0.08em; color: var(--pink-bright); text-align: center; }
+.wf-emergency-status { margin: 0.2rem 0 0; font-size: 0.4rem; font-weight: bold; color: var(--text-faint); }
+.wf-emergency-bar { width: 60px; height: 5px; margin-top: 0.35rem; border: 1px solid var(--pink-bright); background: var(--graphite-2); }
+.wf-emergency-bar-fill { height: 100%; background: var(--pink-bright); width: 62%; }
+.wf-emergency-hint { margin-top: 0.35rem; font-size: 0.36rem; font-weight: bold; letter-spacing: 0.06em; color: var(--text-faint); }
 </style>
 </head>
 <body>
@@ -344,9 +357,10 @@ details.deck-select[open] > summary .car { transform: rotate(180deg); }
         <a href="#deck-appearance">03 Appearance</a>
         <a href="#deck-reactor">04 Reactor</a>
         <a href="#deck-clinical">05 Clinical</a>
-        <a href="#deck-safety">06 Safety &amp; Lockdown</a>
-        <a href="#deck-setup">07 Initialization</a>
-        <a href="#deck-install">08 Installation</a>
+        <a href="#deck-emergency">06 Emergency Protocol</a>
+        <a href="#deck-safety">07 Safety &amp; Lockdown</a>
+        <a href="#deck-setup">08 Initialization</a>
+        <a href="#deck-install">09 Installation</a>
       </div>
     </details>
   </div>
@@ -366,7 +380,7 @@ details.deck-select[open] > summary .car { transform: rotate(180deg); }
           <a href="#deck-install">Installation</a>.
         </div>
 
-        <div role="img" aria-label="Mission Control screen: header reads NEON // FLUX, Clinical Controller, with a Theme icon and an Accessibility icon always visible top-right (see the Accessibility and Appearance decks below). Waveform is set to Pulse, with Geiger, Throb and Custom also available. Frequency slider at 60 BPM. Intensity slider at 50%. Sleep Protocol is off. Memory bank buttons read Engram, Daemon, Ghost and Enable. Below that, an Emergency Protocol button, the Bio-Metric Visualizer reading Awaiting Telemetry, and an Upload Configuration button.">
+        <div role="img" aria-label="Mission Control screen: header reads NEON // FLUX, Clinical Controller, with a Theme icon and an Accessibility icon always visible top-right (see the Accessibility and Appearance decks below). Waveform is set to Pulse, with Geiger, Throb and Custom also available. Frequency slider at 60 BPM. Intensity slider at 50%. Sleep Protocol is off. Memory bank buttons read Engram, Daemon, Ghost and Enable. Below that, an Emergency Protocol button that expands to 5MIN, 7MIN, INF and HALT buttons (see the Emergency Protocol deck below), the Bio-Metric Visualizer reading Awaiting Telemetry, and an Upload Configuration button.">
           <div aria-hidden="true">
             <div class="ps-statusbar"><span>9:41</span><span>100%</span></div>
             <div class="dash-header-row">
@@ -431,6 +445,12 @@ details.deck-select[open] > summary .car { transform: rotate(180deg); }
             </div>
 
             <div class="ps-emergency cut-hero"><span>EMERGENCY PROTOCOL</span></div>
+            <div class="ps-row">
+              <span class="ps-chip cut-chip ps-chip-outline">5MIN</span>
+              <span class="ps-chip cut-chip ps-chip-outline">7MIN</span>
+              <span class="ps-chip cut-chip ps-chip-outline">INF</span>
+              <span class="ps-chip cut-chip ps-chip-danger">HALT</span>
+            </div>
 
             <div class="ps-bio">
               <div class="ps-bio-head"><span>BIO-METRIC VISUALIZER</span><span class="ps-bio-status">AWAITING TELEMETRY</span></div>
@@ -663,6 +683,79 @@ details.deck-select[open] > summary .car { transform: rotate(180deg); }
     </div>
   </section>
 
+  <section id="deck-emergency" class="deck">
+    <p class="deck-eyebrow">// Deck 03 (on the watch)</p>
+    <div class="phone-frame">
+      <div class="phone-notch" aria-hidden="true"></div>
+      <div class="phone-screen">
+        <h2 class="dash-header-title" style="font-size:1rem;color:var(--pink-bright);">EMERGENCY PROTOCOL</h2>
+        <p class="dash-header-sub">DISTRACTION &amp; NUMBING OVERRIDE</p>
+
+        <div class="watch-mockup-row">
+          <div class="watch-frame" role="img" aria-label="Emergency Protocol on the watch: a retooled version of the app's firmware-update sync screen, reading bracketed EMERGENCY PROTOCOL, a status line TX: OVERRIDE // 04:32, a draining progress bar, and TAP ANYWHERE TO HALT.">
+            <div class="watch-screen" aria-hidden="true">
+              <p class="wf-emergency-title">[ EMERGENCY<br />PROTOCOL ]</p>
+              <p class="wf-emergency-status">TX: OVERRIDE // 04:32</p>
+              <div class="wf-emergency-bar"><div class="wf-emergency-bar-fill"></div></div>
+              <p class="wf-emergency-hint">TAP ANYWHERE TO HALT</p>
+            </div>
+          </div>
+        </div>
+        <p class="watch-caption">
+          Not a third deck you switch into — it seizes the watch from
+          whatever Reactor or Clinical was doing, regardless of activity or
+          state, for a fixed duration or indefinitely. The screen shown here
+          is deliberately a retooled version of the Clinical deck's own
+          "[ FIRMWARE UPDATING ]" sync screen — same look, but sticky: it
+          stays up for as long as the override runs, which makes it the
+          definitive on-watch indicator that you're in this mode.
+        </p>
+
+        <div class="deck-copy">
+          <h3>What it's for</h3>
+          <p>
+            A distraction / grounding tool, distinct from the
+            <a href="#deck-safety">Lockdown Gesture</a> below: sustained,
+            continuous haptic vibration — not a pulse or beat — held at one
+            steady strength for as long as it runs. The idea is a strong,
+            unbroken point of contact to pull focus away from an
+            overwhelming moment, or to lean into localized numbing from
+            constant vibration at the skin.
+          </p>
+
+          <h3>How it works</h3>
+          <ul class="feature-list">
+            <li><strong>Triggered from the phone:</strong> tap <code>EMERGENCY PROTOCOL</code> on <a href="#deck-mission">Mission Control</a>, then <code>5MIN</code>, <code>7MIN</code>, or <code>INF</code> (indefinite — gated behind its own risk-acknowledgment screen on the phone before it will start).</li>
+            <li><strong>Strength:</strong> the same <code>INTENSITY</code> slider used for Clinical, read at the moment you start it — there's no separate dial.</li>
+            <li><strong>Total takeover:</strong> whatever the watch was doing — Reactor mid-motion, a Clinical beat mid-session — stops immediately. Nothing else can interrupt or share the motor while it's engaged, not even a remote command arriving from the phone.</li>
+          </ul>
+
+          <h3>Ending it</h3>
+          <ul class="feature-list">
+            <li><strong>On the watch:</strong> tap anywhere on the screen, or press the physical/back button. Deliberately <em>not</em> the two-finger, three-second Lockdown Gesture — coordinating that while under continuous max-strength vibration is an unreasonable ask, so this is a single tap, anywhere, full stop.</li>
+            <li><strong>On the phone:</strong> the <code>HALT</code> button in the Emergency Protocol menu.</li>
+            <li><strong>The timer:</strong> 5MIN and 7MIN end themselves; INF runs until one of the two HALTs above.</li>
+            <li><strong>Graceful return:</strong> the watch lands back on standby, on whichever deck was showing before — it never auto-resumes a Clinical beat or a Reactor session on its own.</li>
+          </ul>
+
+          <div class="sys-notice critical">
+            <strong>Extended use — hardware and wetware, read before running INF.</strong>
+            <p style="margin:0.5rem 0 0;">
+              This is the single most power-hungry, highest-amplitude
+              profile the watch has, run continuously instead of in short
+              pulses — hardware and body concerns both scale with how long
+              it runs.
+            </p>
+            <ul class="feature-list" style="margin-top:0.5rem;">
+              <li><strong>Hardware:</strong> continuous full-strength vibration draws more power and runs the motor hotter than any other profile. Safe Mode still applies — the watch refuses to start (or run) below 15% battery — but expect faster drain than Reactor or Clinical during an INF session.</li>
+              <li><strong>Wetware:</strong> sustained vibration at one point of contact can cause temporary numbness, tingling, or skin irritation the longer it runs. Reduced sensation is part of the intended effect in short doses — that's not the same as it being consequence-free over long ones. Take breaks on longer sessions, and stop immediately (tap anywhere) if you notice pain, persistent numbness, or skin redness.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section id="deck-safety" class="deck">
     <p class="deck-eyebrow">// Safety &amp; Lockdown</p>
     <div class="phone-frame">
@@ -671,6 +764,15 @@ details.deck-select[open] > summary .car { transform: rotate(180deg); }
         <h2 class="dash-header-title" style="font-size:0.95rem;">SAFEGUARD // LOCKDOWN_PROTOCOL</h2>
 
         <div class="deck-copy">
+          <p>
+            Two different "emergency" mechanisms live in NeonFlux, on
+            purpose — don't confuse them. The <strong>Lockdown Gesture</strong>
+            below is a panic-stop: it kills whatever's running, full stop.
+            <a href="#deck-emergency">Emergency Protocol</a> is a
+            distraction/numbing tool you deliberately turn on — see that
+            deck for how to end a session it started.
+          </p>
+
           <h3>1. The Curtain (Focus Mode)</h3>
           <p>
             While Clinical Mode is running with Sleep Protocol enabled, a

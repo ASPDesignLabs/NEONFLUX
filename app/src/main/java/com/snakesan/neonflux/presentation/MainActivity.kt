@@ -295,6 +295,79 @@ fun SafeModeScreen(batteryLevel: Int) {
     }
 }
 
+// Full-screen takeover while Emergency Protocol is engaged - reuses the
+// "[ FIRMWARE UPDATING ]" sync screen's look (same bracketed title, RX/TX
+// status line, and bordered progress-bar box) rather than a bespoke design,
+// so it reads as the same family of system-level overlay. Unlike that sync
+// screen, this one is sticky: it has no animation of its own that finishes
+// and dismisses it - it stays up for as long as isEmergencyActive is true
+// (driven by FluxService's real timer/halt, not a local animation), which
+// makes it the definitive on-watch indicator that this mode is engaged.
+// The whole screen is the stop target (not a small button, and not the
+// 2-finger/3s Lockdown Gesture used elsewhere) - continuous max-strength
+// vibration makes fine motor control and multi-touch timing an unreasonable
+// ask, so a single tap anywhere, or the physical back button, both HALT it.
+@Composable
+fun EmergencyOverrideScreen(endTime: Long, durationMin: Int, texture: Int, onHalt: () -> Unit) {
+    val isIndefinite = durationMin < 0
+    BackHandler(enabled = true) { onHalt() }
+
+    var remainingText by remember { mutableStateOf(if (isIndefinite) "INDEFINITE" else "--:--") }
+    var remainingFraction by remember { mutableFloatStateOf(1f) }
+    val totalMs = remember(durationMin) { durationMin * 60_000L }
+
+    LaunchedEffect(endTime, isIndefinite, totalMs) {
+        if (!isIndefinite) {
+            while (true) {
+                val remainingMs = (endTime - System.currentTimeMillis()).coerceAtLeast(0)
+                val totalSec = remainingMs / 1000
+                remainingText = "%02d:%02d".format(totalSec / 60, totalSec % 60)
+                remainingFraction = if (totalMs > 0) (remainingMs.toFloat() / totalMs.toFloat()).coerceIn(0f, 1f) else 0f
+                if (remainingMs <= 0) break
+                delay(250)
+            }
+        }
+    }
+
+    // INF mode has no fixed duration to drain toward, so the bar pulses
+    // (full <-> dim) instead of counting down - still a live, sticky signal
+    // that the override is running, just an indefinite one.
+    val infiniteTransition = rememberInfiniteTransition(label = "emergencyPulse")
+    val pulseRatio by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(animation = tween(900, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
+        label = "emergencyPulseRatio"
+    )
+    val barFraction = if (isIndefinite) pulseRatio else remainingFraction
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(FluxBg)
+            .clickable(onClick = onHalt),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("[ EMERGENCY PROTOCOL ]", color = FluxPink, fontSize = 10.wsp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Spacer(Modifier.height(8.dp))
+            // Names the active texture on-wrist so mid-test you can confirm
+            // which one you're actually feeling right now - the whole point
+            // of this screen while textures are being A/B tested.
+            Text(
+                "TX: ${EmergencyTexture.label(texture)} // ${if (isIndefinite) "CONTINUOUS" else remainingText}",
+                color = FluxTextDim, fontSize = 8.wsp, fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(15.dp))
+            Box(Modifier.width(120.dp).height(8.dp).border(1.dp, FluxPink).background(FluxDark)) {
+                Box(Modifier.fillMaxHeight().fillMaxWidth(barFraction).background(FluxPink))
+            }
+            Spacer(Modifier.height(15.dp))
+            Text("TAP ANYWHERE TO HALT", color = FluxTextDim, fontSize = 8.wsp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+        }
+    }
+}
+
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun NeonFluxWatchUI(activity: MainActivity) {
@@ -318,7 +391,17 @@ fun NeonFluxWatchUI(activity: MainActivity) {
     var lastInteractionTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var scrollAccumulator by remember { mutableFloatStateOf(0f) }
     var visualMotionMag by remember { mutableFloatStateOf(0f) }
-    
+
+    // --- EMERGENCY PROTOCOL STATE ---
+    // Distinct from isLockedDown/isClinicalActive: this takes over from
+    // whatever deck/activity was running, regardless of state, until HALTed
+    // or its timer runs out - see EMERGENCY_STATE receiver below.
+    var isEmergencyActive by remember { mutableStateOf(false) }
+    var emergencyDurationMin by remember { mutableIntStateOf(-1) }
+    var emergencyEndTime by remember { mutableLongStateOf(0L) }
+    var emergencyTexture by remember { mutableIntStateOf(EmergencyTexture.STEADY) }
+    var previousDeckBeforeEmergency by remember { mutableStateOf(Deck.REACTOR) }
+
     // --- REMOTE SYNC RECEIVER ---
     DisposableEffect(Unit) {
         val syncReceiver = object : BroadcastReceiver() {
@@ -372,6 +455,46 @@ fun NeonFluxWatchUI(activity: MainActivity) {
             context.registerReceiver(engageReceiver, filter)
         }
         onDispose { try { context.unregisterReceiver(engageReceiver) } catch (e: Exception) {} }
+    }
+
+    // --- EMERGENCY PROTOCOL RECEIVER ---
+    // Fired by FluxService on /emergency_override (on) and on any halt path
+    // (off - phone HALT, watch single-tap stop, or the timer running out).
+    // Registered up-front like the other receivers above so it keeps working
+    // no matter what full-screen state (Safe Mode, sync, exit dialog) is
+    // currently showing.
+    DisposableEffect(Unit) {
+        val emergencyReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == "com.snakesan.neonflux.EMERGENCY_STATE") {
+                    val active = intent.getBooleanExtra("active", false)
+                    val durationMin = intent.getIntExtra("duration_min", -1)
+                    val texture = intent.getIntExtra("texture", EmergencyTexture.STEADY)
+                    if (active) {
+                        if (!isEmergencyActive) previousDeckBeforeEmergency = currentDeck
+                        isEmergencyActive = true
+                        emergencyDurationMin = durationMin
+                        emergencyEndTime = if (durationMin >= 0) System.currentTimeMillis() + durationMin * 60_000L else 0L
+                        emergencyTexture = texture
+                    } else {
+                        isEmergencyActive = false
+                        // Graceful return: standby on whichever deck was active before -
+                        // never auto-resume a Clinical beat or Reactor session on its own.
+                        currentDeck = previousDeckBeforeEmergency
+                        fluxState = FluxState.MONITOR
+                        isClinicalActive = false
+                        countdownValue = 0
+                    }
+                }
+            }
+        }
+        val filter = IntentFilter("com.snakesan.neonflux.EMERGENCY_STATE")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(emergencyReceiver, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            context.registerReceiver(emergencyReceiver, filter)
+        }
+        onDispose { try { context.unregisterReceiver(emergencyReceiver) } catch (e: Exception) {} }
     }
 
     // --- REMOTE A11Y / THEME RECEIVERS ---
@@ -485,7 +608,7 @@ fun NeonFluxWatchUI(activity: MainActivity) {
 
     val isLockedDown = isClinicalActive && countdownValue == 0
     val isReactorRunning = fluxState == FluxState.ACTIVE && currentDeck == Deck.REACTOR
-    val isSessionRunning = isLockedDown || isReactorRunning
+    val isSessionRunning = isLockedDown || isReactorRunning || isEmergencyActive
     val isSafeModeLocked = batteryLevel < SAFE_MODE_BATTERY_THRESHOLD
 
     // SAFE MODE: refuse to run below the threshold. If the battery crosses under
@@ -503,6 +626,20 @@ fun NeonFluxWatchUI(activity: MainActivity) {
     // being intercepted by the (unregistered) exit dialog.
     if (isSafeModeLocked) {
         SafeModeScreen(batteryLevel)
+        return
+    }
+
+    // Emergency Protocol takes over regardless of activity or state: bail out
+    // before BackHandler/countdown/auto-sleep/motion-wake/gestures are
+    // registered (same reasoning as Safe Mode above), so nothing but its own
+    // dedicated stop control (or the timer) can end it.
+    if (isEmergencyActive) {
+        EmergencyOverrideScreen(
+            endTime = emergencyEndTime,
+            durationMin = emergencyDurationMin,
+            texture = emergencyTexture,
+            onHalt = { activity.fluxService?.haltEmergencyFromWatch() }
+        )
         return
     }
 
@@ -534,7 +671,7 @@ fun NeonFluxWatchUI(activity: MainActivity) {
     
     // MOTION WAKE
     LaunchedEffect(visualMotionMag) {
-        if (currentDeck == Deck.REACTOR && !isClinicalActive && !activity.isSyncing) {
+        if (currentDeck == Deck.REACTOR && !isClinicalActive && !activity.isSyncing && !isEmergencyActive) {
             if (visualMotionMag > 5.0f) { 
                 lastInteractionTime = System.currentTimeMillis()
                 fluxState = FluxState.ACTIVE

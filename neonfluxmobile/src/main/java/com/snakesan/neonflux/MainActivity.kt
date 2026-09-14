@@ -423,6 +423,11 @@ fun FluxMobileUI(prefs: SharedPreferences) {
     var showEmergencyMenu by remember { mutableStateOf(false) }
     var emergencyUploadState by remember { mutableStateOf(UploadState.IDLE) }
     var activeEmergencyMode by remember { mutableIntStateOf(0) } // 0 = off, 1 = 5m, 2 = 7m, 3 = inf
+    // 0 = STEADY (unbroken sustain), 1 = PULSE (hardware-looped on/off) - see
+    // EmergencyTexture on the watch (FluxService.kt) for the wire contract.
+    // Being actively A/B tested on-device; whichever wins becomes the one
+    // enabled under Emergency Protocol (and possibly carried elsewhere later).
+    var emergencyTexture by remember { mutableIntStateOf(prefs.getInt("emergency_texture", 0)) }
 
     // --- Theme & Style Sheet State ---
     var activePaletteIndex by remember { mutableIntStateOf(prefs.getInt("theme_index", 0)) }
@@ -581,11 +586,12 @@ fun FluxMobileUI(prefs: SharedPreferences) {
 
     fun scaledSp(size: Number) = (size.toFloat() * phoneFontScale).sp
 
-    fun sendEmergencyToWatch(mode: Int, intensityDb: Float, durationMin: Int) {
-        val buffer = ByteBuffer.allocate(9)
+    fun sendEmergencyToWatch(mode: Int, intensityDb: Float, durationMin: Int, texture: Int) {
+        val buffer = ByteBuffer.allocate(10)
         buffer.put(mode.toByte())
         buffer.putFloat(intensityDb)
         buffer.putInt(durationMin)
+        buffer.put(texture.toByte())
 
         Wearable.getNodeClient(context).connectedNodes.addOnSuccessListener { nodes ->
             nodes.forEach {
@@ -1127,10 +1133,18 @@ fun FluxMobileUI(prefs: SharedPreferences) {
                                 }
                             }
 
+                            Text(
+                                "AT THE INTENSITY SET ABOVE (${intensity.toInt()}%)",
+                                color = activePalette.textMain.copy(alpha = 0.5f),
+                                fontSize = (9 * phoneFontScale).sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 8.dp),
+                                    .padding(top = 6.dp),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 val emMod = Modifier.weight(1f).height(40.dp).clip(CutCornerShape(topStart = 8.dp, bottomEnd = 8.dp))
@@ -1150,11 +1164,11 @@ fun FluxMobileUI(prefs: SharedPreferences) {
 
                                 // 5MIN, 7MIN, INF Buttons
                                 EmButton("5MIN", activeEmergencyMode == 1) {
-                                    sendEmergencyToWatch(1, intensity, 5)
+                                    sendEmergencyToWatch(1, intensity, 5, emergencyTexture)
                                 }
 
                                 EmButton("7MIN", activeEmergencyMode == 2) {
-                                    sendEmergencyToWatch(2, intensity, 7)
+                                    sendEmergencyToWatch(2, intensity, 7, emergencyTexture)
                                 }
 
                                 EmButton("INF", activeEmergencyMode == 3) {
@@ -1167,7 +1181,7 @@ fun FluxMobileUI(prefs: SharedPreferences) {
                                         .background(Color.Red.copy(alpha = 0.2f))
                                         .border(1.dp, Color.Red, CutCornerShape(topStart = 8.dp, bottomEnd = 8.dp))
                                         .clickable {
-                                            sendEmergencyToWatch(0, 0f, 0)
+                                            sendEmergencyToWatch(0, 0f, 0, emergencyTexture)
                                             activeEmergencyMode = 0
                                             emergencyUploadState = UploadState.IDLE
                                             showEmergencyMenu = false
@@ -1175,6 +1189,51 @@ fun FluxMobileUI(prefs: SharedPreferences) {
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text("HALT", color = smartContrast(Color.Red, isHighContrast, isMonochromeToggled), fontSize = (12 * phoneFontScale).sp, fontWeight = FontWeight.Black)
+                                }
+                            }
+
+                            // TEXTURE picker - which playback style 5MIN/7MIN/INF actually
+                            // sends. Kept separate from the duration/HALT row above (a
+                            // different accent color, same as how WAVEFORM's picker reads
+                            // differently from this whole red/pink Emergency sector) so the
+                            // two option groups don't blend into one. Selecting a texture
+                            // doesn't itself send anything to the watch - it's read at the
+                            // moment you tap 5MIN/7MIN/INF, same as the intensity slider.
+                            Text(
+                                "TEXTURE",
+                                color = smartContrast(MaterialTheme.colorScheme.tertiary, isHighContrast, isMonochromeToggled),
+                                fontSize = (9 * phoneFontScale).sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(top = 10.dp)
+                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                val txMod = Modifier.weight(1f).height(36.dp).clip(CutCornerShape(topStart = 8.dp, bottomEnd = 8.dp))
+
+                                @Composable
+                                fun TxButton(text: String, isActive: Boolean, onClick: () -> Unit) {
+                                    Box(
+                                        modifier = txMod
+                                            .background(if (isActive) activePalette.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                            .border(1.dp, if (isActive) activePalette.primary else MaterialTheme.colorScheme.tertiary, CutCornerShape(topStart = 8.dp, bottomEnd = 8.dp))
+                                            .clickable(onClick = onClick),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(text, color = if (isActive) Color.Black else activePalette.textMain, fontSize = (11 * phoneFontScale).sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+
+                                TxButton("STEADY", emergencyTexture == 0) {
+                                    emergencyTexture = 0
+                                    prefs.edit().putInt("emergency_texture", 0).apply()
+                                }
+                                TxButton("PULSE", emergencyTexture == 1) {
+                                    emergencyTexture = 1
+                                    prefs.edit().putInt("emergency_texture", 1).apply()
                                 }
                             }
                         }
@@ -1273,6 +1332,22 @@ Spacer(modifier = Modifier.height(16.dp))
                             lineHeight = 16.sp
                         )
 
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // PLAIN-LANGUAGE SAFETY NOTE - the flavor text above is real
+                        // fiction dressing, but this is the actual disclaimer: INF
+                        // is the single most power-hungry, highest-amplitude profile
+                        // the watch has, run continuously instead of in short pulses,
+                        // so hardware and body concerns both scale with how long it
+                        // runs.
+                        Text(
+                            text = "IN PLAIN TERMS: continuous full-strength vibration drains the watch battery faster and runs its motor hotter than any other profile. Sustained vibration at one point of contact can also cause temporary numbness, tingling, or skin irritation the longer it runs - take breaks on longer sessions, and stop immediately if you notice pain, persistent numbness, or skin redness.",
+                            color = activePalette.textMain.copy(alpha = 0.7f),
+                            fontSize = 10.sp,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 14.sp
+                        )
+
                         Spacer(modifier = Modifier.height(24.dp))
 
                         // ACTIONS
@@ -1291,7 +1366,7 @@ Spacer(modifier = Modifier.height(16.dp))
                             Button(
                                 onClick = {
                                     showInfDisclaimer = false
-                                    sendEmergencyToWatch(3, intensity, -1)
+                                    sendEmergencyToWatch(3, intensity, -1, emergencyTexture)
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(alpha = 0.8f)),
                                 shape = CutCornerShape(8.dp)
