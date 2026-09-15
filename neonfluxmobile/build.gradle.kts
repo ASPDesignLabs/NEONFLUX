@@ -13,7 +13,7 @@ android {
         applicationId = "com.snakesan.neonflux"
         minSdk = 33
         targetSdk = 36
-        versionCode = 1
+        versionCode = 2
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -41,6 +41,12 @@ android {
 }
 
 dependencies {
+
+    // Embeds the watch module's APK in this module's AAB so one Play
+    // listing installs both the phone app and, on a paired Wear OS device,
+    // the watch app - no separate listing/applicationId needed since both
+    // modules already share com.snakesan.neonflux.
+    wearApp(project(":app"))
 
     implementation(libs.play.services.wearable)
     implementation(libs.core.ktx)
