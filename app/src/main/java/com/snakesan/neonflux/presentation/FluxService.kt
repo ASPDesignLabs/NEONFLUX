@@ -126,10 +126,13 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
             return START_NOT_STICKY
         }
 
-        // Promote to Foreground (Media Playback type for Android 14+)
+        // Promote to Foreground. specialUse (not mediaPlayback) because the
+        // service's default, primary behavior is haptics - audio is an
+        // opt-in toggle, off by default - see the manifest's
+        // PROPERTY_SPECIAL_USE_FGS_SUBTYPE justification.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(99, createNotification("NeonFlux Engine Active"), 
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+            startForeground(99, createNotification("NeonFlux Engine Active"),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } else {
             startForeground(99, createNotification("NeonFlux Engine Active"))
         }
