@@ -13,7 +13,7 @@ android {
         applicationId = "com.snakesan.neonflux"
         minSdk = 33
         targetSdk = 36
-        versionCode = 1
+        versionCode = 2
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -42,7 +42,13 @@ android {
 
 dependencies {
 
-    implementation("com.google.android.gms:play-services-wearable:18.1.0")
+    // Embeds the watch module's APK in this module's AAB so one Play
+    // listing installs both the phone app and, on a paired Wear OS device,
+    // the watch app - no separate listing/applicationId needed since both
+    // modules already share com.snakesan.neonflux.
+    wearApp(project(":app"))
+
+    implementation(libs.play.services.wearable)
     implementation(libs.core.ktx)
     implementation(libs.compose.foundation) // Provides core Wear Compose layout building blocks
     implementation(libs.compose.material)   // Provides Wear-specific Material components like Theme, Text, etc.
@@ -61,18 +67,10 @@ dependencies {
     androidTestImplementation(libs.ui.test.junit4)
     debugImplementation(libs.ui.tooling)
     debugImplementation(libs.ui.test.manifest)
-    implementation(platform("androidx.compose:compose-bom:2024.04.01"))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.activity:activity-compose:1.9.0")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material3:material3:1.2.1")
     // Icons.Filled.Accessibility / Icons.Filled.Palette live here, not in the
     // small curated core icon set.
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
 }

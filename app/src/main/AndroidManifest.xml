@@ -3,13 +3,23 @@
 
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.VIBRATE"/>
-    
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
     <!-- FOREGROUND SERVICE PERMISSIONS -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <!-- CHANGE: Switched from connectedDevice to mediaPlayback -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- The service's default, primary behavior is a vibration/haptics engine
+         (audio is an opt-in toggle, off by default), so it's declared as
+         specialUse rather than mediaPlayback - see the justification on the
+         <service> element below. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <uses-feature android:name="android.hardware.type.watch" />
+
+    <!-- Only an app signed with the same certificate as NeonFlux can hold
+         this permission - required by OVERSEER to send KILL_COMMAND below. -->
+    <permission
+        android:name="com.snakesan.neonflux.permission.OVERSEER_CONTROL"
+        android:protectionLevel="signature" />
 
     <queries>
         <package android:name="com.snakesan.overseer" />
@@ -21,13 +31,21 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.DeviceDefault">
-        
-        <!-- CHANGE: Updated foregroundServiceType to mediaPlayback -->
-        <service 
-            android:name=".FluxService" 
-            android:exported="false" 
-            android:foregroundServiceType="mediaPlayback" />
 
+        <!-- Clinical/Emergency sync depends on the paired phone app, so this
+             is not a standalone Wear OS app. -->
+        <meta-data
+            android:name="com.google.android.wearable.standalone"
+            android:value="false" />
+
+        <service
+            android:name=".FluxService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Continuous haptic and optional audio biofeedback engine: translates real-time wrist motion into vibration (and, when the user enables it, a synthesized tone) for sensory grounding and self-regulation. Must keep running with the screen off or the app backgrounded so an active session doesn't silently stop." />
+        </service>
 
         <activity
             android:name=".MainActivity"

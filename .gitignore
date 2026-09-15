@@ -3,6 +3,7 @@
 .kotlin/
 build/
 /*/build/
+/*/release/
 !gradle-wrapper.jar
 
 # --- Android Studio / IntelliJ ---

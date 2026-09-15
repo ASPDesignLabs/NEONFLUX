@@ -23,6 +23,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
@@ -38,6 +39,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -796,6 +800,16 @@ fun FluxMobileUI(prefs: SharedPreferences) {
             if (perms.values.all { it }) {
                 val i = Intent(context, FluxService::class.java)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) context.startForegroundService(i) else context.startService(i)
+            } else {
+                // Denial doesn't actually block core functionality - ENABLE
+                // below starts the connection unconditionally - but silently
+                // doing nothing here looks identical to "nothing paired yet",
+                // so say what happened instead of leaving that ambiguous.
+                Toast.makeText(
+                    context,
+                    "Some permissions were denied. Tap ENABLE to start the connection anyway.",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     )
@@ -1052,7 +1066,12 @@ fun FluxMobileUI(prefs: SharedPreferences) {
                                     .clip(CutCornerShape(topStart = 6.dp, bottomEnd = 6.dp))
                                     .background(if (sleepMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                                     .border(1.dp, if (sleepMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant, CutCornerShape(topStart = 6.dp, bottomEnd = 6.dp))
-                                    .clickable { sleepMode = !sleepMode },
+                                    .toggleable(
+                                        value = sleepMode,
+                                        onValueChange = { sleepMode = it },
+                                        role = Role.Switch
+                                    )
+                                    .semantics { contentDescription = "Sleep Protocol: disable sensors and screen during Clinical" },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(text = if (sleepMode) "ON" else "OFF", color = if (sleepMode) Color.Black else smartContrast(MaterialTheme.colorScheme.tertiary, isHighContrast, isMonochromeToggled), fontSize = scaledSp(10), fontWeight = FontWeight.Bold)
@@ -1848,6 +1867,11 @@ fun CyberSequencer(
                             val globalIndex = (rackIndex * 8) + stepIndex
                             val isHighlighted = activeStep == globalIndex
 
+                            val stepModeLabel = when (step.mode) {
+                                StepMode.OFF -> "off"
+                                StepMode.HIT -> "hit"
+                                StepMode.SUSTAIN -> "sustain"
+                            }
                             Box(
                                 modifier = Modifier
                                     .width(36.dp)
@@ -1856,6 +1880,9 @@ fun CyberSequencer(
                                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                                     .border(1.dp, if(isHighlighted) MaterialTheme.colorScheme.onBackground else Color.Transparent, CutCornerShape(topStart = 4.dp, bottomEnd = 4.dp))
                                     .combinedClickable(
+                                        onClickLabel = "Cycle step mode",
+                                        onLongClickLabel = "Set custom intensity override",
+                                        role = Role.Button,
                                         onClick = {
                                             val nextMode = when (step.mode) {
                                                 StepMode.OFF -> StepMode.HIT
@@ -1868,7 +1895,11 @@ fun CyberSequencer(
                                             sequence[globalIndex] = step.copy(mode = if(step.mode == StepMode.OFF) StepMode.HIT else step.mode, isOverride = true)
                                             editingStepIndex = globalIndex
                                         }
-                                    ),
+                                    )
+                                    .semantics {
+                                        contentDescription = "Step ${globalIndex + 1}, $stepModeLabel" +
+                                            if (step.isOverride) ", custom intensity" else ""
+                                    },
                                 contentAlignment = Alignment.BottomCenter
                             ) {
                                 if (step.mode != StepMode.OFF) {
