@@ -25,7 +25,7 @@ android {
                 arguments += "-DANDROID_STL=c++_shared"
             }
         }
-    } // <--- THIS BRACE WAS MISSING IN YOUR SNIPPET
+    }
 
     buildTypes {
         release {
@@ -68,29 +68,28 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.13.1")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.1")
-    implementation("androidx.compose.material3:material3:1.2.1")
+    implementation(libs.core.ktx)
+    implementation(libs.lifecycle.runtime.ktx)
 
     // NATIVE AUDIO LIB
     implementation(libs.oboe)
 
     // Play Services
-    implementation("com.google.android.gms:play-services-wearable:18.2.0")
+    implementation(libs.play.services.wearable)
 
     // Compose BOM
-    implementation(platform("androidx.compose:compose-bom:2024.06.00"))
-    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation(platform(libs.compose.bom))
+    implementation(libs.core.splashscreen)
 
-    implementation("androidx.activity:activity-compose")
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation(libs.activity.compose)
+    implementation(libs.ui)
+    implementation(libs.ui.tooling.preview)
+    implementation(libs.material3)
 
     // Wear OS Compose
-    implementation("androidx.wear.compose:compose-material:1.3.1")
-    implementation("androidx.wear.compose:compose-foundation:1.3.1")
+    implementation(libs.compose.material)
+    implementation(libs.compose.foundation)
 
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
+    debugImplementation(libs.ui.tooling)
+    debugImplementation(libs.ui.test.manifest)
 }
