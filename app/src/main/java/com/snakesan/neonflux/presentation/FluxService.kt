@@ -622,6 +622,7 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
 
         // 2. Broadcast to Local UI
         val localIntent = Intent("com.snakesan.neonflux.STATE_CHANGE")
+        localIntent.setPackage(packageName)
         localIntent.putExtra("mode", modeText)
         sendBroadcast(localIntent)
 

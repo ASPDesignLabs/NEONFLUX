@@ -427,7 +427,7 @@ fun NeonFluxWatchUI(activity: MainActivity) {
         }
         val filter = IntentFilter("com.snakesan.neonflux.REMOTE_CONFIG")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(syncReceiver, filter, Context.RECEIVER_EXPORTED)
+            context.registerReceiver(syncReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
             context.registerReceiver(syncReceiver, filter)
         }
@@ -450,7 +450,7 @@ fun NeonFluxWatchUI(activity: MainActivity) {
         }
         val filter = IntentFilter("com.snakesan.neonflux.REMOTE_ENGAGE")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(engageReceiver, filter, Context.RECEIVER_EXPORTED)
+            context.registerReceiver(engageReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
             context.registerReceiver(engageReceiver, filter)
         }
@@ -490,7 +490,7 @@ fun NeonFluxWatchUI(activity: MainActivity) {
         }
         val filter = IntentFilter("com.snakesan.neonflux.EMERGENCY_STATE")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(emergencyReceiver, filter, Context.RECEIVER_EXPORTED)
+            context.registerReceiver(emergencyReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
             context.registerReceiver(emergencyReceiver, filter)
         }
@@ -512,7 +512,7 @@ fun NeonFluxWatchUI(activity: MainActivity) {
         }
         val filter = IntentFilter("com.snakesan.neonflux.REMOTE_A11Y")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(a11yReceiver, filter, Context.RECEIVER_EXPORTED)
+            context.registerReceiver(a11yReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
             context.registerReceiver(a11yReceiver, filter)
         }
@@ -535,7 +535,7 @@ fun NeonFluxWatchUI(activity: MainActivity) {
         }
         val filter = IntentFilter("com.snakesan.neonflux.REMOTE_THEME")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(themeReceiver, filter, Context.RECEIVER_EXPORTED)
+            context.registerReceiver(themeReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
             context.registerReceiver(themeReceiver, filter)
         }
