@@ -128,20 +128,35 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
             return START_NOT_STICKY
         }
 
-        // Promote to Foreground. specialUse (not mediaPlayback) because the
-        // service's default, primary behavior is haptics - audio is an
-        // opt-in toggle, off by default - see the manifest's
-        // PROPERTY_SPECIAL_USE_FGS_SUBTYPE justification.
+        // Promote to Foreground first, unconditionally - MainActivity.onStart()
+        // calls startForegroundService() on every launch even while Safe Mode
+        // is locked, and Android requires startForeground() to follow shortly
+        // after or the system throws ForegroundServiceDidNotStartInTimeException.
+        // specialUse (not mediaPlayback) because the service's default,
+        // primary behavior is haptics - audio is an opt-in toggle, off by
+        // default - see the manifest's PROPERTY_SPECIAL_USE_FGS_SUBTYPE
+        // justification.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(99, createNotification("NeonFlux Engine Active"),
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } else {
             startForeground(99, createNotification("NeonFlux Engine Active"))
         }
-        
+
+        // Now that the startForeground() contract is satisfied, tear straight
+        // back down if Safe Mode is locked - covers both MainActivity's
+        // unconditional start-on-launch above, and the OS restarting this
+        // START_STICKY service (null intent) after killing it for memory
+        // pressure, neither of which otherwise checks battery at all.
+        if (!isBatterySafe()) {
+            Log.w("FluxService", "Safe Mode is locked - stopping immediately after required startForeground()")
+            haltService()
+            return START_NOT_STICKY
+        }
+
         // Acquire lock if not held
         if (wakeLock?.isHeld == false) wakeLock?.acquire(24 * 60 * 60 * 1000L) // 24hr timeout
-        
+
         return START_STICKY
     }
 
@@ -356,9 +371,15 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
         }
     }
 
+    // Shares the same persisted trip/release state as the watch UI
+    // (updateSafeModeLock in MainActivity.kt), rather than re-deriving a
+    // plain live-percentage check - so a remote-triggered start honors the
+    // same "must actually charge back up" hysteresis the UI is enforcing,
+    // instead of letting the percentage ticking back to 15% alone unlock it.
     private fun isBatterySafe(): Boolean {
         val bm = getSystemService(Context.BATTERY_SERVICE) as BatteryManager
-        return bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) >= SAFE_MODE_BATTERY_THRESHOLD
+        val level = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+        return !updateSafeModeLock(this, bm, level)
     }
 
     private fun broadcastRemoteEngageToUI() {
@@ -431,6 +452,11 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
         // Emergency Protocol owns the screen, but never let anything hijack
         // the motor away from it.
         if (isEmergencyActive) return
+        // Defense-in-depth: the watch UI already refuses to reach this while
+        // Safe Mode is locked, but this is the one start path (a local,
+        // watch-initiated Reactor start) that previously had no battery
+        // check of its own - unlike the three remote-triggered paths above.
+        if (!isBatterySafe()) return
         clinicalJob?.cancel()
         isRunning = true
         activeProfile = profile

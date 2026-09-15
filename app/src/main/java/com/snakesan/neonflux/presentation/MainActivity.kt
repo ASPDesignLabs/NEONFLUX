@@ -72,6 +72,48 @@ enum class Deck { REACTOR, CLINICAL }
 // this mid-session - see README "SAFE MODE".
 const val SAFE_MODE_BATTERY_THRESHOLD = 15
 
+// Once tripped, Safe Mode requires actually charging back up to this (not
+// just the percentage happening to read fine again) before it releases -
+// see updateSafeModeLock() below. Deliberately above the trip threshold so
+// a percentage hovering right at 15% can't flap the lock on and off.
+const val SAFE_MODE_RELEASE_THRESHOLD = 25
+
+private const val SAFETY_PREFS = "FluxWatchSafety"
+private const val KEY_SAFE_MODE_LOCKED = "safe_mode_locked"
+
+// Persisted (not just derived live) so the lock survives the app closing/
+// reopening or FluxService being restarted by the OS - the whole point of
+// requiring actual charging is that a live "is the percentage OK right now"
+// check isn't enough on its own. Both MainActivity and FluxService call this
+// with their own fresh battery read, so either one can trip or release the
+// lock independent of whether the other is currently running.
+fun isSafeModeLockPersisted(context: Context): Boolean =
+    context.getSharedPreferences(SAFETY_PREFS, Context.MODE_PRIVATE).getBoolean(KEY_SAFE_MODE_LOCKED, false)
+
+private fun setSafeModeLockPersisted(context: Context, locked: Boolean) {
+    context.getSharedPreferences(SAFETY_PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_SAFE_MODE_LOCKED, locked).apply()
+}
+
+// Re-evaluated fresh from live inputs every time this is called (never a
+// one-shot latch), so a charger making poor contact just re-locks on the
+// next check instead of leaving the app stuck waiting for a single
+// "started charging" event that may never have cleanly fired. Returns the
+// resulting locked state.
+fun updateSafeModeLock(context: Context, batteryManager: BatteryManager, batteryLevel: Int): Boolean {
+    val locked = isSafeModeLockPersisted(context)
+    return when {
+        !locked && batteryLevel < SAFE_MODE_BATTERY_THRESHOLD -> {
+            setSafeModeLockPersisted(context, true)
+            true
+        }
+        locked && batteryManager.isCharging && batteryLevel >= SAFE_MODE_RELEASE_THRESHOLD -> {
+            setSafeModeLockPersisted(context, false)
+            false
+        }
+        else -> locked
+    }
+}
+
 // --- THEME/A11Y STATE ---
 // Backs FluxCyan/Pink/Dark/Bg/TextMain/TextDim below, so every existing color
 // reference in this file stays theme-aware without threading a value through
@@ -288,8 +330,13 @@ fun SafeModeScreen(batteryLevel: Int) {
             Text("CORE $batteryLevel%", color = FluxTextMain, fontSize = 22.wsp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
             Text(
-                "CHARGE ABOVE $SAFE_MODE_BATTERY_THRESHOLD% TO CONTINUE",
+                "CHARGE ABOVE $SAFE_MODE_RELEASE_THRESHOLD% TO CONTINUE",
                 color = FluxTextDim, fontSize = 9.wsp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "50%+ RECOMMENDED BEFORE STARTING A NEW SESSION",
+                color = FluxTextDim, fontSize = 7.wsp, letterSpacing = 1.sp
             )
         }
     }
@@ -383,6 +430,11 @@ fun NeonFluxWatchUI(activity: MainActivity) {
     // launch-time refusal is correct on the very first frame, not just after the
     // first 5s poll tick below.
     var batteryLevel by remember { mutableIntStateOf(batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)) }
+    // Same reasoning as batteryLevel above: derive this synchronously from the
+    // persisted lock + the live reading we just took, so a still-locked Safe
+    // Mode from before this launch shows correctly on the very first frame
+    // instead of waiting for the first poll tick.
+    var isSafeModeLocked by remember { mutableStateOf(updateSafeModeLock(context, batteryManager, batteryLevel)) }
     var timeRemaining by remember { mutableStateOf("CALC...") }
     var isAudioMode by remember { mutableStateOf(false) }
     var fluxState by remember { mutableStateOf(FluxState.MONITOR) }
@@ -561,12 +613,17 @@ fun NeonFluxWatchUI(activity: MainActivity) {
     val sensorManager = remember { context.getSystemService(Context.SENSOR_SERVICE) as SensorManager }
     val accelerometer = remember { sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) }
 
-    DisposableEffect(Unit) {
+    // No reason to keep sampling wrist motion while Safe Mode refuses to run
+    // anything with it - skip registering the listener entirely while locked,
+    // matching the "optimize background power draw during the lockout" intent
+    // of Safe Mode itself.
+    DisposableEffect(isSafeModeLocked) {
+        if (isSafeModeLocked) return@DisposableEffect onDispose {}
         val listener = object : SensorEventListener {
             override fun onSensorChanged(event: SensorEvent?) {
                 event?.let {
                     val x = it.values[0]; val y = it.values[1]; val z = it.values[2]
-                    val accel = sqrt(x*x + y*y + z*z) - 9.8f 
+                    val accel = sqrt(x*x + y*y + z*z) - 9.8f
                     visualMotionMag = (visualMotionMag * 0.9f) + (abs(accel) * 0.1f)
                 }
             }
@@ -592,24 +649,31 @@ fun NeonFluxWatchUI(activity: MainActivity) {
         onDispose { window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
     }
 
-    // BATTERY MON
-    LaunchedEffect(isClinicalActive, isAudioMode, fluxState) {
+    // BATTERY MON - deliberately keyed on Unit, not on isClinicalActive/
+    // isAudioMode/fluxState. Those flip constantly during an active Reactor
+    // session (fluxState toggles ACTIVE/MONITOR with every motion change),
+    // and keying a LaunchedEffect on them was restarting this coroutine - and
+    // therefore its delay(5000) - far more often than every 5s, so
+    // batteryLevel effectively stopped updating during exactly the sessions
+    // Safe Mode needs to be watching. Read the current values of those flags
+    // fresh each iteration instead of keying on them.
+    LaunchedEffect(Unit) {
         while(isActive) {
             val lvl = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
             batteryLevel = lvl
-            val burnRate = if(isClinicalActive) 0.3 else if (isAudioMode) 0.8 else 0.5 
+            isSafeModeLocked = updateSafeModeLock(context, batteryManager, lvl)
+            val burnRate = if(isClinicalActive) 0.3 else if (isAudioMode) 0.8 else 0.5
             val minsLeft = (lvl / burnRate).toInt()
             timeRemaining = "${minsLeft / 60}h ${minsLeft % 60}m"
             delay(5000)
         }
     }
-    
+
     LaunchedEffect(profileNameToast) { if (profileNameToast.isNotEmpty()) { delay(1500); profileNameToast = "" } }
 
     val isLockedDown = isClinicalActive && countdownValue == 0
     val isReactorRunning = fluxState == FluxState.ACTIVE && currentDeck == Deck.REACTOR
     val isSessionRunning = isLockedDown || isReactorRunning || isEmergencyActive
-    val isSafeModeLocked = batteryLevel < SAFE_MODE_BATTERY_THRESHOLD
 
     // SAFE MODE: refuse to run below the threshold. If the battery crosses under
     // it while a session is actually running, close out rather than let a session
