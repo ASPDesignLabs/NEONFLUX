@@ -109,12 +109,14 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
         // Listen to Phone
         Wearable.getMessageClient(this).addListener(this)
         
-        // Register Kill Switch
+        // Register Kill Switch - gated behind a signature permission so only
+        // an app signed with the same certificate as NeonFlux (i.e. OVERSEER,
+        // once it declares <uses-permission> for this) can trigger it.
         val filter = IntentFilter("com.snakesan.overseer.KILL_COMMAND")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(killReceiver, filter, Context.RECEIVER_EXPORTED)
+            registerReceiver(killReceiver, filter, "com.snakesan.neonflux.permission.OVERSEER_CONTROL", null, Context.RECEIVER_EXPORTED)
         } else {
-            registerReceiver(killReceiver, filter)
+            registerReceiver(killReceiver, filter, "com.snakesan.neonflux.permission.OVERSEER_CONTROL", null)
         }
         
         createNotificationChannel()

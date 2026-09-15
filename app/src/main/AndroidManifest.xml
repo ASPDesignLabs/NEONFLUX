@@ -15,6 +15,12 @@
 
     <uses-feature android:name="android.hardware.type.watch" />
 
+    <!-- Only an app signed with the same certificate as NeonFlux can hold
+         this permission - required by OVERSEER to send KILL_COMMAND below. -->
+    <permission
+        android:name="com.snakesan.neonflux.permission.OVERSEER_CONTROL"
+        android:protectionLevel="signature" />
+
     <queries>
         <package android:name="com.snakesan.overseer" />
     </queries>

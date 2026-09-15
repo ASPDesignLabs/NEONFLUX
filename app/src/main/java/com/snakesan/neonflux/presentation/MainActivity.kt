@@ -551,9 +551,9 @@ fun NeonFluxWatchUI(activity: MainActivity) {
         }
         val filter = IntentFilter("com.snakesan.overseer.KILL_COMMAND")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
+            context.registerReceiver(receiver, filter, "com.snakesan.neonflux.permission.OVERSEER_CONTROL", null, Context.RECEIVER_EXPORTED)
         } else {
-            context.registerReceiver(receiver, filter)
+            context.registerReceiver(receiver, filter, "com.snakesan.neonflux.permission.OVERSEER_CONTROL", null)
         }
         onDispose { try { context.unregisterReceiver(receiver) } catch (e: Exception) {} }
     }
