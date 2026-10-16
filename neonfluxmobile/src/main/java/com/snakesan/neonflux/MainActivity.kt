@@ -1,6 +1,7 @@
 package com.snakesan.neonflux
 
 import android.Manifest
+import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -93,6 +94,16 @@ data class NeonPalette(
 private const val PATH_FLUX_OVERSEER_STATE = "/flux_overseer_state"
 private const val PATH_CUSTOM_PROFILE_META = "/custom_profile_meta"
 private const val PATH_VISUAL_THEME_SYNC = "/flux_visual_theme"
+
+// Matches how much of the custom profile name OVERSEER displays
+// (MainGrid.kt: fluxCustomName.take(12)) - don't send more than it can show.
+private const val OVERSEER_NAME_MAX_CHARS = 12
+
+// Like take(n), but never leaves a dangling half of a surrogate pair at the cut.
+private fun String.takeWholeChars(max: Int): String {
+    val cut = take(max)
+    return if (cut.lastOrNull()?.isHighSurrogate() == true) cut.dropLast(1) else cut
+}
 private const val ACTION_PREPARE_LOCAL =
     "com.snakesan.neonflux.PREPARE_LOCAL"
 
@@ -263,6 +274,33 @@ val FluxPalettes = listOf(
     NeonPalette("GHOST SHELL", Color(0xFFE0E0E0), Color(0xFF555555))
 )
 
+// Single source of truth for which palette is on screen. Both the standard picker
+// and the Monochrome controls feed through here, so the phone UI, the watch sync
+// and the OVERSEER state packet can never disagree about the active theme.
+fun resolveActivePalette(
+    themeIndex: Int,
+    isMonochrome: Boolean,
+    monoBaseIndex: Int,
+    isHdr: Boolean
+): NeonPalette {
+    if (!isMonochrome) {
+        return FluxPalettes[themeIndex.coerceIn(0, FluxPalettes.size - 1)]
+    }
+
+    val pair = MonochromeBaseColors[monoBaseIndex.coerceIn(0, MonochromeBaseColors.size - 1)]
+    val layers = generateMonochromeLayers(pair.second, isHdr)
+    return NeonPalette(
+        name = "${pair.first} MONOCHROME",
+        primary = layers[3],
+        secondary = layers[2],
+        isMonochrome = true,
+        l1 = layers[0],
+        l2 = layers[1],
+        textMain = layers[3],
+        bg = Color.Black
+    )
+}
+
 
 
 // --- ACCESSIBILITY HELPERS ---
@@ -320,43 +358,11 @@ class MainActivity : ComponentActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         setContent {
-            // Read from properties directly inside the compose block to ensure reactive state
-            var savedIdx by remember { mutableIntStateOf(prefs.getInt("theme_index", 0)) }
-            var isMonochrome by remember { mutableStateOf(prefs.getBoolean("is_monochrome", false)) }
-            var monoBaseIdx by remember { mutableIntStateOf(prefs.getInt("mono_base_index", 0)) }
-            var isHdrIntense by remember { mutableStateOf(prefs.getBoolean("is_hdr_intense", false)) }
-
-            // Dynamic Window Hardware Toggle (Must be called inside Compose Context via Effect)
-            LaunchedEffect(isHdrIntense, isMonochrome) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    window.colorMode = if (isHdrIntense && isMonochrome) {
-                        ActivityInfo.COLOR_MODE_WIDE_COLOR_GAMUT
-                    } else {
-                        ActivityInfo.COLOR_MODE_DEFAULT
-                    }
-                }
-            }
-
-            val activePalette = if (isMonochrome) {
-                val pair = MonochromeBaseColors[monoBaseIdx.coerceIn(0, MonochromeBaseColors.size - 1)]
-                val hexName = pair.first
-                val baseCol = pair.second
-                val layers = generateMonochromeLayers(baseCol, isHdrIntense)
-                NeonPalette(
-                    name = "${hexName} MONOCHROME",
-                    primary = layers[3],
-                    secondary = layers[2],
-                    isMonochrome = true,
-                    l1 = layers[0],
-                    l2 = layers[1],
-                    textMain = layers[3],
-                    bg = Color.Black
-                )
-            } else {
-                FluxPalettes[savedIdx.coerceIn(0, FluxPalettes.size - 1)]
-            }
-
-            NeonTheme(palette = activePalette) {
+            // FluxMobileUI owns the live theme state (palette / Monochrome / HDR) and
+            // wraps its own content in NeonTheme. Nothing here may resolve a palette
+            // from prefs: those reads happen once, so the result would go stale as soon
+            // as the user picks a different theme.
+            NeonTheme(palette = FluxPalettes[0]) {
                 FluxMobileUI(prefs)
             }
         }
@@ -441,21 +447,21 @@ fun FluxMobileUI(prefs: SharedPreferences) {
 
     var showInfDisclaimer by remember { mutableStateOf(false) }
 
-    val activePalette = if (isMonochromeToggled) {
-        val pair = MonochromeBaseColors[monoBaseIndex.coerceIn(0, MonochromeBaseColors.size - 1)]
-        val layers = generateMonochromeLayers(pair.second, isMonoHdrToggled)
-        NeonPalette(
-            name = "${pair.first} MONOCHROME",
-            primary = layers[3],
-            secondary = layers[2],
-            isMonochrome = true,
-            l1 = layers[0],
-            l2 = layers[1],
-            textMain = layers[3],
-            bg = Color.Black
-        )
-    } else {
-        FluxPalettes[activePaletteIndex.coerceIn(0, FluxPalettes.size - 1)]
+    val activePalette = remember(activePaletteIndex, isMonochromeToggled, monoBaseIndex, isMonoHdrToggled) {
+        resolveActivePalette(activePaletteIndex, isMonochromeToggled, monoBaseIndex, isMonoHdrToggled)
+    }
+
+    // Wide-gamut window mode only matters for Monochrome + HDR. It lives here, next to
+    // the state it reads, so toggling HDR applies immediately instead of after a restart.
+    LaunchedEffect(isMonoHdrToggled, isMonochromeToggled) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            (view.context as? Activity)?.window?.colorMode =
+                if (isMonoHdrToggled && isMonochromeToggled) {
+                    ActivityInfo.COLOR_MODE_WIDE_COLOR_GAMUT
+                } else {
+                    ActivityInfo.COLOR_MODE_DEFAULT
+                }
+        }
     }
 
     var showStyleSheet by remember { mutableStateOf(false) }
@@ -542,7 +548,11 @@ fun FluxMobileUI(prefs: SharedPreferences) {
             "CUSTOM_$customBank"
         ) ?: "CUSTOM_$customBank"
 
-        val nameBytes = customName.encodeToByteArray()
+        // OVERSEER only ever shows the first OVERSEER_NAME_MAX_CHARS of the name, so
+        // that is all that leaves the phone. Length is capped by characters (never
+        // splitting a surrogate pair), so the byte count always fits the 1-byte
+        // length field and the buffer below is exactly the size of what we write.
+        val nameBytes = customName.takeWholeChars(OVERSEER_NAME_MAX_CHARS).encodeToByteArray()
 
         val packet = ByteBuffer.allocate(33 + nameBytes.size)
             .apply {
@@ -562,8 +572,8 @@ fun FluxMobileUI(prefs: SharedPreferences) {
                 putInt(activePalette.l2.toArgb())
                 putInt(activePalette.bg.toArgb())
 
-                put(nameBytes.size.coerceAtMost(255).toByte())
-                put(nameBytes.copyOf(nameBytes.size.coerceAtMost(255)))
+                put(nameBytes.size.toByte())
+                put(nameBytes)
             }
             .array()
 
@@ -832,6 +842,17 @@ fun FluxMobileUI(prefs: SharedPreferences) {
             putBoolean("sleep", sleepMode)
             apply()
         }
+    }
+
+    // Keeps the watch's theme in lockstep with whatever the phone is showing. Keyed on
+    // the resolved palette rather than the individual controls, so picking a palette,
+    // toggling Monochrome/HDR and sliding Base Core all sync with no extra press.
+    // sendVisualThemeToWatch() reads activePalette from the composition that launched
+    // this effect (the NEW palette); calling it straight from a click handler would
+    // read the previous one. Also runs once at launch so the watch converges.
+    LaunchedEffect(activePalette, isMonoHdrToggled) {
+        delay(150L)
+        sendVisualThemeToWatch()
     }
 
     LaunchedEffect(
@@ -1466,7 +1487,6 @@ Spacer(modifier = Modifier.height(16.dp))
                                 modifier = Modifier.fillMaxWidth().clickable {
                                     isMonochromeToggled = !isMonochromeToggled
                                     prefs.edit().putBoolean("is_monochrome", isMonochromeToggled).apply()
-                                    sendVisualThemeToWatch()
                                 }.padding(16.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
@@ -1539,13 +1559,6 @@ Spacer(modifier = Modifier.height(16.dp))
                                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable {
                                         activePaletteIndex = index
                                         prefs.edit().putInt("theme_index", index).apply()
-                                        sendVisualThemeToWatch()
-                                        Wearable.getNodeClient(context).connectedNodes.addOnSuccessListener { nodes ->
-                                            nodes.forEach {
-                                                Wearable.getMessageClient(context)
-                                                    .sendMessage(it.id, "/flux_theme_sync", byteArrayOf(index.toByte()))
-                                            }
-                                        }
                                     },
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
