@@ -94,6 +94,16 @@ data class NeonPalette(
 private const val PATH_FLUX_OVERSEER_STATE = "/flux_overseer_state"
 private const val PATH_CUSTOM_PROFILE_META = "/custom_profile_meta"
 private const val PATH_VISUAL_THEME_SYNC = "/flux_visual_theme"
+
+// Matches how much of the custom profile name OVERSEER displays
+// (MainGrid.kt: fluxCustomName.take(12)) - don't send more than it can show.
+private const val OVERSEER_NAME_MAX_CHARS = 12
+
+// Like take(n), but never leaves a dangling half of a surrogate pair at the cut.
+private fun String.takeWholeChars(max: Int): String {
+    val cut = take(max)
+    return if (cut.lastOrNull()?.isHighSurrogate() == true) cut.dropLast(1) else cut
+}
 private const val ACTION_PREPARE_LOCAL =
     "com.snakesan.neonflux.PREPARE_LOCAL"
 
@@ -538,7 +548,11 @@ fun FluxMobileUI(prefs: SharedPreferences) {
             "CUSTOM_$customBank"
         ) ?: "CUSTOM_$customBank"
 
-        val nameBytes = customName.encodeToByteArray()
+        // OVERSEER only ever shows the first OVERSEER_NAME_MAX_CHARS of the name, so
+        // that is all that leaves the phone. Length is capped by characters (never
+        // splitting a surrogate pair), so the byte count always fits the 1-byte
+        // length field and the buffer below is exactly the size of what we write.
+        val nameBytes = customName.takeWholeChars(OVERSEER_NAME_MAX_CHARS).encodeToByteArray()
 
         val packet = ByteBuffer.allocate(33 + nameBytes.size)
             .apply {
@@ -558,8 +572,8 @@ fun FluxMobileUI(prefs: SharedPreferences) {
                 putInt(activePalette.l2.toArgb())
                 putInt(activePalette.bg.toArgb())
 
-                put(nameBytes.size.coerceAtMost(255).toByte())
-                put(nameBytes.copyOf(nameBytes.size.coerceAtMost(255)))
+                put(nameBytes.size.toByte())
+                put(nameBytes)
             }
             .array()
 
