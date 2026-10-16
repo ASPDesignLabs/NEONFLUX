@@ -369,6 +369,81 @@ class FluxService : Service(), MessageClient.OnMessageReceivedListener {
                 }
             } catch (e: Exception) { Log.e("FluxService", "Emergency Override Error", e) }
         }
+
+        // CASE 9: OVERSEER STATE RELAY. The phone addresses this packet to
+        // OVERSEER, but Data Layer messages are routed to the app sharing the
+        // SENDER's package name on the target node - that is this app, and
+        // OVERSEER (a different package) isn't expected to receive it directly.
+        // So re-deliver it here as a package-pinned broadcast, using the extras
+        // OVERSEER's "FLUX" UPDATE_STATUS handler already reads. If OVERSEER does
+        // also get the message directly, both writes carry identical values.
+        else if (event.path == "/flux_overseer_state") {
+            relayFluxStateToOverseer(event.data)
+        }
+    }
+
+    // Wire format from the phone's sendOverseerFluxState() (protocol version 1):
+    // [version:1][running:1][profile:1][bank:1][bpm:4][intensity:1][sleep:1]
+    // [mono:1][hdr:1][primary:4][secondary:4][l1:4][l2:4][bg:4][nameLen:1][name].
+    //
+    // flux_mode / is_active are deliberately NOT forwarded: updateState() already
+    // owns them from this watch's own service state, and the phone's "running"
+    // flag means something different (UI engaged vs. a haptic loop live here), so
+    // sending both would have the two writers fight over the same fields.
+    private fun relayFluxStateToOverseer(payload: ByteArray) {
+        try {
+            val buffer = ByteBuffer.wrap(payload)
+            if (buffer.remaining() < 33) {
+                Log.w("FluxService", "Ignoring short OVERSEER state packet: ${payload.size} bytes")
+                return
+            }
+
+            val version = buffer.get().toInt()
+            if (version != 1) {
+                Log.w("FluxService", "Unsupported OVERSEER state protocol: $version")
+                return
+            }
+
+            buffer.get() // running - see note above
+            val profile = buffer.get().toInt()
+            val bank = buffer.get().toInt()
+            val bpm = buffer.getInt()
+            val intensity = buffer.get().toInt()
+            val sleep = buffer.get().toInt() == 1
+            val mono = buffer.get().toInt() == 1
+            val hdr = buffer.get().toInt() == 1
+            val primary = buffer.getInt()
+            val secondary = buffer.getInt()
+            val l1 = buffer.getInt()
+            val l2 = buffer.getInt()
+            val bg = buffer.getInt()
+
+            val nameLen = buffer.get().toInt() and 0xFF
+            if (nameLen > buffer.remaining()) {
+                Log.w("FluxService", "Invalid OVERSEER state name length")
+                return
+            }
+            val nameBytes = ByteArray(nameLen)
+            buffer.get(nameBytes)
+
+            val intent = Intent("com.snakesan.overseer.UPDATE_STATUS")
+            intent.setPackage("com.snakesan.overseer")
+            intent.putExtra("source_app", "FLUX")
+            intent.putExtra("flux_profile", profile)
+            intent.putExtra("flux_custom_bank", bank)
+            intent.putExtra("flux_custom_name", nameBytes.decodeToString())
+            intent.putExtra("flux_bpm", bpm)
+            intent.putExtra("flux_intensity", intensity)
+            intent.putExtra("flux_sleep_mode", sleep)
+            intent.putExtra("flux_monochrome", mono)
+            intent.putExtra("flux_hdr", hdr)
+            intent.putExtra("flux_primary_color", primary)
+            intent.putExtra("flux_secondary_color", secondary)
+            intent.putExtra("flux_l1_color", l1)
+            intent.putExtra("flux_l2_color", l2)
+            intent.putExtra("flux_bg_color", bg)
+            sendBroadcast(intent)
+        } catch (e: Exception) { Log.e("FluxService", "OVERSEER State Relay Error", e) }
     }
 
     // Shares the same persisted trip/release state as the watch UI
